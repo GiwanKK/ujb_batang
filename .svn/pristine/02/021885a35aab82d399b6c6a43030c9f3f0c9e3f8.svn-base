@@ -1,0 +1,200 @@
+package kr.go.uijeongbu.dashBoard.complain.complainStatus.web;
+
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
+
+import kr.go.uijeongbu.cmm.util.CommonUtil;
+import kr.go.uijeongbu.cmm.vo.LoginVO;
+import kr.go.uijeongbu.dashBoard.complain.complainStatus.service.ComplainStatusService;
+import kr.go.uijeongbu.manager.logMng.service.LogService;
+
+/**
+ * 민원실현황 대시보드 controller
+ * @author 김부권
+ * @since 2021. 07. 28.
+ * @version 1.0
+ * @see
+ *
+ * <pre>
+ * << 개정이력(Modification Information) >>
+ *
+ *     수정일			         수정자				수정내용
+ *  -------------    -------------   ----------------------
+ *  2021. 07. 28.	        김 부 권              최초생성
+ *   
+ * </pre>
+ */
+@Controller
+public class ComplainStatusController {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(ComplainStatusController.class);
+	@Resource(name = "complainStatusService")
+	private ComplainStatusService complainStatusService;
+
+	@Resource(name = "logService")
+	private LogService logService;				// DB 서비스 호출
+	
+	@Autowired
+	private MappingJackson2JsonView jsonView;
+	
+	/**
+	 * 메인 화면
+	 * @param 
+	 * @param model
+	 * @return 
+	 * @throws Exception
+	 */
+	@RequestMapping(value = "/dashBoard/complain/complainStatus.do", method = RequestMethod.POST, produces={"application/json; charset=UTF-8"})
+    public String complainStatus(HttpServletRequest request, ModelMap model) throws NullPointerException, Exception {
+		
+		//검색기간 넣기
+		Map<String, Object> date = complainStatusService.selectComplainReceiptDate();
+		model.addAttribute("date",date);		
+		//메뉴코드
+		String menuCode = "MENU_00023";
+		// Parameter 객체
+		Map<String, Object> paramInfo = new HashMap<String, Object>();
+		// 로그인 사용자 정보를 Session에서 가져오기
+		LoginVO loginVO = CommonUtil.getLoginInfo();
+		paramInfo.put("loginId", loginVO.getId());
+		paramInfo.put("menuCode", menuCode);
+		logService.createMenuLog(paramInfo);
+		return "/dashBoard/complain/complainStatus";
+		
+    }
+	
+	/**
+	 * 민원 현황실 데이터 조회
+	 * @param request
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/dashBoard/complain/complainStatusData.do", method = RequestMethod.POST, produces = ("application/json; charset-UTF-8"))
+	public ModelAndView complainStatusData(HttpServletRequest request, @RequestBody Map<String, Object> params) throws SQLException, Exception {
+		// ModelAndView 객체 생성
+		ModelAndView modelAndView = CommonUtil.makeModelAndView(jsonView);
+		
+		//민원 접수 현황 데이터 조회
+		//List<Map<String, Object>> complainReceipt = complainStatusService.selectComplainReceipt(params);
+		//각동 주민센터 일빈민원접수 데이터 조회
+		//List<Map<String, Object>> complainStatus = complainStatusService.selectComplainStatus(params);
+		//시정 뉴스 데이터 조회
+		//List<Map<String, Object>> complainNews = complainStatusService.selectComplainNews(params);
+		//if(complainNews.size() == 0) {
+		List<Map<String, Object>> complainNews = complainStatusService.getMaxNewsList();
+		//max-1 뉴스 데이터
+		List<Map<String, Object>> complainNews1 = complainStatusService.getMaxNewsList1();
+		//max-2 뉴스 데이터
+		List<Map<String, Object>> complainNews2 = complainStatusService.getMaxNewsList2();
+		//}
+		
+		//modelAndView.addObject("complainReceipt", complainReceipt);
+		//modelAndView.addObject("complainStatus", complainStatus);
+		modelAndView.addObject("complainNews", complainNews);
+		modelAndView.addObject("complainNews1", complainNews1);
+		modelAndView.addObject("complainNews2", complainNews2);
+		//modelAndView.addObject("list", data.get("list"));
+		//modelAndView.addObject("page", data.get("page"));
+		
+		return modelAndView;
+		
+	}
+	
+	/**
+	 * 민원 현황실 실시간 데이터 조회
+	 * @param request
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	@ResponseBody
+	@RequestMapping(value = "/dashBoard/complain/complainLiveStatusData.do", method = RequestMethod.POST, produces = ("application/json; charset-UTF-8"))
+	public ModelAndView complainLiveStatusData(HttpServletRequest request, @RequestBody Map<String, Object> params) throws SQLException, Exception {
+		// ModelAndView 객체 생성
+		ModelAndView modelAndView = CommonUtil.makeModelAndView(jsonView);
+		
+		//데이터 시간 조회
+		Map<String, Object> complainLastDate = complainStatusService.selectComplainLastDate();
+		//민원 접수 현황 데이터 조회
+		List<Map<String, Object>> complainReceipt = complainStatusService.selectComplainLiveReceipt();
+		//각동 주민센터 일빈민원접수 데이터 조회
+		List<Map<String, Object>> complainStatus = complainStatusService.selectComplainLiveStatus();
+		
+		//시정 뉴스 데이터 조회
+		List<Map<String, Object>> complainNews = complainStatusService.selectComplainNews(params);
+		if(complainNews.size() == 0) {
+			complainNews = complainStatusService.getMaxNewsList();
+		}
+		modelAndView.addObject("complainLastDate", complainLastDate);
+		modelAndView.addObject("complainReceipt", complainReceipt);
+		modelAndView.addObject("complainStatus", complainStatus);
+		modelAndView.addObject("complainNews", complainNews);
+		
+		return modelAndView;
+		
+	}
+	
+	/**
+	 * 유동인구 행정동 선택 및 검색 조건 조회
+	 * @param request
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	/*@ResponseBody
+	@RequestMapping(value = "/dashBoard/population/populationFlowSearchData.do", method = RequestMethod.POST, produces = ("application/json; charset-UTF-8"))
+	public ModelAndView populationFlowSearchData(HttpServletRequest request, @RequestBody Map<String, Object> params) throws Exception {
+		// ModelAndView 객체 생성
+		ModelAndView modelAndView = CommonUtil.makeModelAndView(jsonView);
+		//Map<String, Object> popEmdTime = complainStatusService.selectPopEmdTime(params);
+		List<Map<String, Object>> popDayFlow = complainStatusService.selectPopDayFlow(params);
+		List<Map<String, Object>> popEmdTimeRange = complainStatusService.selectPopEmdTimeRange(params);
+		List<Map<String, Object>> popGenderFlow = complainStatusService.selectPopGenderFlow(params);
+		List<Map<String, Object>> popRegService = complainStatusService.selectPopRegService(params);
+		
+		Map<String, Object> sum = new HashMap<String, Object>();
+		
+		int sumMan = 0;
+		int sumWoman = 0;
+		
+		for( int i = 0 ; i < popGenderFlow.size(); i++ ) {
+			sumMan += Integer.parseInt(popGenderFlow.get(i).get("atrb01").toString());
+			sumWoman += Integer.parseInt(popGenderFlow.get(i).get("atrb02").toString());
+		}
+		sum.put("sumMan", sumMan);
+		sum.put("sumWoman", sumWoman);
+		
+		
+		//modelAndView.addObject("popEmdTime", popEmdTime);
+		modelAndView.addObject("popEmdTimeRange", popEmdTimeRange);
+		modelAndView.addObject("popDayFlow", popDayFlow);
+		modelAndView.addObject("popGenderFlow", popGenderFlow);
+		modelAndView.addObject("popRegService", popRegService);
+		modelAndView.addObject("sum", sum);
+		//modelAndView.addObject("list", data.get("list"));
+		//modelAndView.addObject("page", data.get("page"));
+		
+		return modelAndView;
+		
+	}*/
+	
+}

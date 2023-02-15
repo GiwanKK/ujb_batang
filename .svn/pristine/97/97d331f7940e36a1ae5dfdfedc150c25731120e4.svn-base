@@ -1,0 +1,817 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="OrganizationMapper">
+	<!-- 조직도 데이터 가져오기 -->
+	<select id="selectOrganization" parameterType="map" resultType="resultCamelMap">
+		<!-- select fn_organization_chart('',''); -->
+	<!-- 시장, 부시장    -->
+	
+		<!-- 시장, 부시장 -->  
+		SELECT  b.rnk, a.*
+		  FROM (
+		    SELECT (ROW_NUMBER() OVER()) AS cnt, a.*
+			      FROM (
+				SELECT 1 AS sort ,rownum, 
+				       CASE WHEN b.rank_name = '팀장' THEN b.section_id ELSE a.dept_id END AS dept_id, 
+				       CASE WHEN a.dept_name = '부속실' THEN '비서실' 
+				            WHEN b.rank_name = '팀장' THEN b.section_name  
+				       ELSE a.dept_name END AS dept_name, 
+				       a.up_dept_id, a.dept_odr, COALESCE(b.user_id, '') user_id, COALESCE(b.user_name, '공 석') AS user_name, COALESCE(b.section_id, '') AS section_id, COALESCE(b.section_name) AS section_name, COALESCE(b.rank_id, 999999) rank_id, COALESCE(b.rank_name) AS rank_name, COALESCE(b.pos_id, 999999) AS pos_id, COALESCE(b.pos_name, '') AS pos_name, COALESCE(b.grade_id, 999999) AS grade_id, COALESCE(b.grade_name, '') AS grade_name, COALESCE(b.img_url,'') AS img_url,COALESCE(b.tel, '') AS tel, COALESCE(b.mobile, '') AS mobile, COALESCE(b.mail, '') AS mail, COALESCE(b.work_division_contents, '') AS work_division_contents, COALESCE(b.odr, 999999) AS user_odr, COALESCE(b.sex, 9) AS user_gender
+				  FROM (
+				        SELECT 1 AS rownum, dept_id, dept_name, up_dept_id, dept_odr
+				          FROM (
+				                SELECT a.dept_id::text, a.dept_name, a.up_dept_id, a.dept_odr
+				                  FROM DATA.ivo_org_dept a
+				                 WHERE 1=1
+				                   AND a.mark_yn = 'Y'
+				                   AND a.use_yn = 1
+				                   AND a.up_dept_id <![CDATA[<>]]> 64100000000
+				                   AND a.dept_name = '시장'
+				                 UNION ALL 
+				                 SELECT a.section_id, a.section_name, a.dept_id, 4 AS dept_odr
+				                   FROM DATA.ivo_org_section a 
+				                  WHERE 1=1
+				                    AND a.mark_yn = 'Y'
+				                    AND a.use_yn = 'Y'
+				                    AND a.section_name = '부속실'
+				                    AND a.dept_id IN ( SELECT dept_id FROM DATA.ivo_org_dept WHERE mark_yn = 'Y' AND use_yn = 1 )
+				                 UNION ALL
+				                 SELECT a.section_id, '비서' AS section_name, a.dept_id, 4 AS dept_odr
+				                   FROM DATA.ivo_org_section a 
+				                  WHERE 1=1
+				                    AND a.mark_yn = 'Y'
+				                    AND a.use_yn = 'Y'
+				                    AND a.section_name = '부속실'
+				                    AND a.dept_id IN ( SELECT dept_id FROM DATA.ivo_org_dept WHERE mark_yn = 'Y' AND use_yn = 1 )
+				                ) a
+				        UNION ALL
+				        SELECT 2 AS rownum, dept_id, dept_name, up_dept_id, dept_odr
+				          FROM (
+				                SELECT a.dept_id::text, a.dept_name, a.up_dept_id, a.dept_odr
+				                  FROM DATA.ivo_org_dept a
+				                 WHERE 1=1
+				                   AND a.mark_yn = 'Y'
+				                   AND a.use_yn = 1
+				                   AND a.up_dept_id <![CDATA[<>]]> 64100000000
+				                   AND (a.dept_name = '부시장' OR right(a.dept_name, 1) = '관' )
+				                 ORDER BY dept_odr, odr ASC 
+				                ) b
+				       ) a
+				LEFT JOIN
+				       (
+				        SELECT 
+				               *
+				          FROM DATA.ivo_org_user
+				         WHERE 1=1
+				           AND use_yn = 1
+				           AND mark_yn = 'Y'
+				           AND user_status NOT LIKE 'DA%'
+				           AND rank_id IS NOT NULL  
+				           AND rank_id <![CDATA[<>]]> 96800 
+				           OR ( section_name = '부속실' AND dept_id <![CDATA[<>]]> 38201700000 AND mark_yn = 'Y' AND work_division_contents = '비서실 업무' AND sex = 2 AND use_yn = 1 AND user_status NOT LIKE 'DA%') 
+				           ORDER BY section_id ASC 
+				       ) b
+				  ON CASE WHEN a.dept_id LIKE 'SEC%' THEN a.dept_id = b.section_id
+				          ELSE a.dept_id = b.dept_id::text END 
+				 WHERE 1=1
+				   AND ( (CASE WHEN a.dept_name = '부속실' THEN '비서실' 
+				            WHEN b.rank_name = '팀장' THEN b.section_name  
+				       ELSE a.dept_name END) != '비서실' OR b.grade_id = 16)
+				   AND ( (CASE WHEN a.dept_name = '부속실' THEN '비서실' 
+				            WHEN b.rank_name = '팀장' THEN b.section_name  
+				       ELSE a.dept_name END) != '비서'/* OR b.grade_id = 17*/)    
+				UNION ALL
+				<!-- 국장 -->
+				SELECT * 
+				  FROM (
+						SELECT 2 AS sort , (ROW_NUMBER() OVER(ORDER BY ROWNUM)) AS rownum, a.dept_id::TEXT AS dept_id, a.dept_name, a.up_dept_id, a.dept_odr, COALESCE(b.user_id, '') user_id, COALESCE(b.user_name, '공 석') AS user_name, COALESCE(b.section_id, '') AS section_id, COALESCE(b.section_name) AS section_name, COALESCE(b.rank_id, 999999) rank_id, COALESCE(b.rank_name) AS rank_name, COALESCE(b.pos_id, 999999) AS pos_id, COALESCE(b.pos_name, '') AS pos_name, COALESCE(b.grade_id, 999999) AS grade_id, COALESCE(b.grade_name, '') AS grade_name, COALESCE(b.img_url,'') AS img_url,COALESCE(b.tel, '') AS tel, COALESCE(b.mobile, '') AS mobile, COALESCE(b.mail, '') AS mail, COALESCE(b.work_division_contents, '') AS work_division_contents, COALESCE(b.odr, 999999) AS user_odr, COALESCE(b.sex, 9) AS user_gender 
+						  FROM 
+						       (
+						        SELECT (ROW_NUMBER() OVER(ORDER BY odr)) AS ROWNUM, 
+						               a.dept_id, a.dept_name, a.up_dept_id, a.dept_odr
+						          FROM DATA.ivo_org_dept a 
+						         WHERE 1=1
+						           AND mark_yn = 'Y'
+						           AND use_yn = 1
+						           AND dept_id IN (SELECT dept_id FROM DATA.ivo_org_dept WHERE mark_yn = 'Y' AND use_yn = 1 AND RIGHT(dept_name, 1) <![CDATA[<>]]> '소' AND dept_name NOT LIKE '%사무%' )
+						           AND up_dept_id IN (SELECT dept_id FROM DATA.ivo_org_dept WHERE mark_yn = 'Y' AND use_yn = 1 AND RIGHT(dept_name, 1) <![CDATA[<>]]> '소' AND dept_name <![CDATA[<>]]> '부시장' )
+						           AND RIGHT(dept_name, 1) <![CDATA[<>]]> '동'
+						           AND dept_id <![CDATA[<>]]> 38200000000
+						           AND dept_name NOT LIKE '%시장'
+						           AND up_dept_id NOT IN ( SELECT dept_id FROM DATA.ivo_org_dept WHERE RIGHT(dept_name, 1) = '동' AND dept_odr != 4 AND (trim(dept_tel) = '' OR dept_tel IS NULL ) )
+						        ORDER BY a.odr
+						        ) a
+						LEFT JOIN
+						       (
+						        SELECT *
+						          FROM DATA.ivo_org_user
+						         WHERE 1=1
+						           AND use_yn = 1
+						           AND mark_yn = 'Y'
+						           AND user_status NOT LIKE 'DA%'
+						           <!-- AND trim(section_id) = ''
+						           AND trim(section_name) = '' -->
+						           AND rank_id  NOT IN (96800 , 58100)
+						           AND rank_id IS NOT NULL 
+						       ) b
+						  ON a.dept_id = b.dept_id
+						WHERE 1=1 
+					ORDER BY  rownum
+					) a
+				UNION ALL
+				<!-- 직속기관 -->
+				SELECT 3 AS sort, 0 AS rownum, '' AS dept_id, '직속기관' AS dept_name, 999999 AS up_dept_id, 0 AS dept_odr, '' AS user_id, '사업소' AS user_name, '' AS section_id, '' AS section_name, 99999 AS rank_id, '' AS rank_name, 999999 AS pos_id, '' AS pos_name, 99999 AS grade_id, '' AS grade_name, '' AS img_url, '' AS tel, '' AS mobile, '' AS mail, '' AS work_division_contents, 0 AS user_odr, 9 AS user_gender/*,  (SELECT count(1) FROM DATA.ivo_org_user_new WHERE 1=1 AND section_id = 'SEC00153' AND rank_id = 76500 AND use_yn = 1 AND mark_yn = 'Y' AND grade_id = 15) AS cnt*/
+				UNION ALL
+				SELECT * 
+				  FROM (
+						SELECT 3 AS sort , rownum, a.dept_id::TEXT AS dept_id, a.dept_name, a.up_dept_id, a.dept_odr, COALESCE(b.user_id, '') user_id, COALESCE(b.user_name, '공 석') AS user_name, COALESCE(b.section_id, '') AS section_id, COALESCE(b.section_name) AS section_name, COALESCE(b.rank_id, 999999) rank_id, COALESCE(b.rank_name) AS rank_name, COALESCE(b.pos_id, 999999) AS pos_id, COALESCE(b.pos_name, '') AS pos_name, COALESCE(b.grade_id, 999999) AS grade_id, COALESCE(b.grade_name, '') AS grade_name, COALESCE(b.img_url,'') AS img_url,COALESCE(b.tel, '') AS tel, COALESCE(b.mobile, '') AS mobile, COALESCE(b.mail, '') AS mail, COALESCE(b.work_division_contents, '') AS work_division_contents, COALESCE(b.odr, 999999) AS user_odr, COALESCE(b.sex, 9) AS user_gender 
+						  FROM 
+						       (
+						        SELECT (ROW_NUMBER() OVER(ORDER BY odr)) AS ROWNUM, 
+						               a.dept_id, a.dept_name, a.up_dept_id, a.dept_odr
+						          FROM DATA.ivo_org_dept a 
+						         WHERE 1=1
+						           AND dept_id IN (SELECT dept_id FROM DATA.ivo_org_dept WHERE mark_yn = 'Y' AND use_yn = 1 AND (RIGHT(dept_name, 1) = '소' AND dept_name NOT LIKE '%사무%') AND dept_id = 38200500000)
+						           OR up_dept_id IN (SELECT dept_id FROM DATA.ivo_org_dept WHERE mark_yn = 'Y' AND use_yn = 1 AND RIGHT(dept_name, 1) = '소' AND dept_id = 38200500000 )
+						           AND RIGHT(dept_name, 1)  <![CDATA[<>]]>  '동'
+						           AND dept_id  <![CDATA[<>]]>  38200000000
+						           AND dept_name NOT LIKE '%시장'
+						           AND up_dept_id NOT IN ( SELECT dept_id FROM DATA.ivo_org_dept WHERE RIGHT(dept_name, 1) = '동' AND dept_odr != 4 AND (trim(dept_tel) = '' OR dept_tel IS NULL ) )
+						           AND mark_yn = 'Y'
+						           AND use_yn = 1
+						        ORDER BY a.odr
+						        ) a
+						LEFT JOIN
+						       (
+						        SELECT *
+						          FROM DATA.ivo_org_user
+						         WHERE 1=1
+						           AND use_yn = 1
+						           AND mark_yn = 'Y'
+						           AND user_status NOT LIKE 'DA%'
+						           <!-- AND trim(section_id) = ''
+						           AND trim(section_name) = '' -->
+						           AND rank_id IS NOT NULL 
+						           AND rank_id <![CDATA[<>]]> 96800 
+						       ) b
+						  ON a.dept_id = b.dept_id
+						WHERE 1=1
+						ORDER BY ROWNUM
+						) A
+				UNION ALL
+				<!-- 사업소 -->
+				SELECT 4 AS sort, 0 AS rownum, '' AS dept_id, '사업소' AS dept_name, 999999 AS up_dept_id, 0 AS dept_odr, '' AS user_id, '사업소' AS user_name, '' AS section_id, '' AS section_name, 99999 AS rank_id, '' AS rank_name, 999999 AS pos_id, '' AS pos_name, 99999 AS grade_id, '' AS grade_name, '' AS img_url, '' AS tel, '' AS mobile, '' AS mail, '' AS work_division_contents, 0 AS user_odr, 9 AS user_gender
+				UNION ALL
+				SELECT *
+				  FROM (
+						SELECT 4 AS sort , rownum, a.dept_id::TEXT AS dept_id, a.dept_name, a.up_dept_id, a.dept_odr, COALESCE(b.user_id, '') user_id, COALESCE(b.user_name, '공 석') AS user_name, COALESCE(b.section_id, '') AS section_id, COALESCE(b.section_name) AS section_name, COALESCE(b.rank_id, 999999) rank_id, COALESCE(b.rank_name) AS rank_name, COALESCE(b.pos_id, 999999) AS pos_id, COALESCE(b.pos_name, '') AS pos_name, COALESCE(b.grade_id, 999999) AS grade_id, COALESCE(b.grade_name, '') AS grade_name, COALESCE(b.img_url,'') AS img_url,COALESCE(b.tel, '') AS tel, COALESCE(b.mobile, '') AS mobile, COALESCE(b.mail, '') AS mail, COALESCE(b.work_division_contents, '') AS work_division_contents, COALESCE(b.odr, 999999) AS user_odr, COALESCE(b.sex, 9) AS user_gender 
+						  FROM 
+						       (
+						        SELECT (ROW_NUMBER() OVER(ORDER BY odr)) AS ROWNUM, 
+						               a.dept_id, a.dept_name, a.up_dept_id, a.dept_odr
+						          FROM DATA.ivo_org_dept a 
+						         WHERE 1=1
+						           AND dept_id IN (SELECT dept_id FROM DATA.ivo_org_dept WHERE mark_yn = 'Y' AND use_yn = 1 AND (RIGHT(dept_name, 1) = '소' AND dept_name NOT LIKE '%사무%') AND dept_id != 38200500000)
+						           OR up_dept_id IN (SELECT dept_id FROM DATA.ivo_org_dept WHERE mark_yn = 'Y' AND use_yn = 1 AND RIGHT(dept_name, 1) = '소' AND dept_id != 38200500000 )
+						           AND RIGHT(dept_name, 1)  <![CDATA[<>]]>  '동'
+						           AND dept_id  <![CDATA[<>]]>  38200000000
+						           AND dept_name NOT LIKE '%시장'
+						           AND up_dept_id NOT IN ( SELECT dept_id FROM DATA.ivo_org_dept WHERE RIGHT(dept_name, 1) = '동' AND dept_odr != 4 or dept_id = 38200500000 AND (trim(dept_tel) = '' OR dept_tel IS NULL ) )
+						           AND dept_id != 38200500000
+						           AND mark_yn = 'Y'
+						           AND use_yn = 1
+						        ORDER BY a.odr
+						        ) a
+						LEFT JOIN
+						       (
+						        SELECT *
+						          FROM DATA.ivo_org_user
+						         WHERE 1=1
+						           AND use_yn = 1
+						           AND mark_yn = 'Y'
+						           AND user_status NOT LIKE 'DA%'
+						           <!-- AND trim(section_id) = ''
+						           AND trim(section_name) = '' -->
+						           AND rank_id IS NOT NULL 
+						           AND rank_id <![CDATA[<>]]> 96800 
+						       ) b
+						  ON a.dept_id = b.dept_id
+						WHERE 1=1
+						ORDER BY ROWNUM
+						) A
+				UNION ALL 
+				SELECT 5 AS sort, 0 AS rownum, '' AS dept_id, '의회사무국' AS dept_name, 999999 AS up_dept_id, (SELECT count(1) FROM DATA.ivo_org_user_new WHERE 1=1 AND section_id = 'SEC00153' AND rank_id = 76500 AND use_yn = 1 AND mark_yn = 'Y' AND grade_id = 15) AS dept_odr, '' AS user_id, '의회사무국' AS user_name, '' AS section_id, '' AS section_name, 99999 AS rank_id, '' AS rank_name, 999999 AS pos_id, '' AS pos_name, 99999 AS grade_id, '' AS grade_name, '' AS img_url, '' AS tel, '' AS mobile, '' AS mail, '' AS work_division_contents, 0 AS user_odr, 9 AS user_gender
+				UNION ALL
+				<!-- 의회사무소 -->
+				SELECT *
+				  FROM (
+						SELECT 5 AS sort , (ROW_NUMBER() OVER(ORDER BY ROWNUM)) AS rownum, a.dept_id::TEXT AS dept_id, a.dept_name, a.up_dept_id, a.dept_odr, COALESCE(b.user_id, '') user_id, COALESCE(b.user_name, '공 석') AS user_name, COALESCE(b.section_id, '') AS section_id, COALESCE(b.section_name) AS section_name, COALESCE(b.rank_id, 999999) rank_id, COALESCE(b.rank_name) AS rank_name, COALESCE(b.pos_id, 999999) AS pos_id, COALESCE(b.pos_name, '') AS pos_name, COALESCE(b.grade_id, 999999) AS grade_id, COALESCE(b.grade_name, '') AS grade_name, COALESCE(b.img_url,'') AS img_url,COALESCE(b.tel, '') AS tel, COALESCE(b.mobile, '') AS mobile, COALESCE(b.mail, '') AS mail, COALESCE(b.work_division_contents, '') AS work_division_contents, COALESCE(b.odr, 999999) AS user_odr, COALESCE(b.sex, 9) AS user_gender 
+						  FROM 
+						       (
+						        SELECT (ROW_NUMBER() OVER(ORDER BY odr)) AS ROWNUM, 
+						               a.dept_id::TEXT, a.dept_name, a.up_dept_id, a.dept_odr
+						          FROM DATA.ivo_org_dept a 
+						         WHERE 1=1
+						           AND mark_yn = 'Y'
+						           AND use_yn = 1
+						           AND dept_id IN (SELECT dept_id FROM DATA.ivo_org_dept WHERE mark_yn = 'Y' AND use_yn = 1 AND dept_name LIKE '%사무%' )
+						        UNION ALL 
+						        SELECT (ROW_NUMBER() OVER( ORDER BY section_odr))+1 AS ROWNUM,
+						               section_id, section_name, dept_id, section_odr
+						          FROM DATA.ivo_org_section
+						         WHERE 1=1
+						           AND use_yn = 'Y'
+						           AND mark_yn ='Y'
+						           AND dept_id IN (SELECT dept_id FROM DATA.ivo_org_dept WHERE mark_yn = 'Y' AND use_yn = 1 AND dept_name LIKE '%사무%' )
+						        ) a
+						LEFT JOIN
+						       (
+						        SELECT *
+						          FROM DATA.ivo_org_user
+						         WHERE 1=1
+						           AND use_yn = 1
+						           AND mark_yn = 'Y'
+						           AND user_status NOT LIKE 'DA%'
+						           AND trim(rank_name) <![CDATA[<>]]> '' 
+						           AND rank_id <![CDATA[<>]]> 96800 
+						           AND dept_id IN (SELECT dept_id FROM DATA.ivo_org_dept WHERE mark_yn = 'Y' AND use_yn = 1 AND dept_name LIKE '%사무%' )
+						           AND odr <![CDATA[<]]> 3
+						       ) b
+						  ON CASE WHEN a.dept_id LIKE 'SEC%' THEN a.dept_id = b.section_id
+						          ELSE a.dept_id = b.dept_id::text END
+						WHERE 1=1
+						ORDER BY ROWNUM
+				  /*AND CASE WHEN rownum = 1 THEN trim(b.section_id) = '' 
+				      ELSE rownum <![CDATA[<>]]> 1 END*/
+				      ) A 
+				UNION ALL
+				--조직도 동 쿼리
+				SELECT 6 AS sort, 0 AS rownum, '' AS dept_id, '동' AS dept_name, 999999 AS up_dept_id, 0 AS dept_odr, '' AS user_id, '동' AS user_name, '' AS section_id, '' AS section_name, 99999 AS rank_id, '' AS rank_name, 999999 AS pos_id, '' AS pos_name, 99999 AS grade_id, '' AS grade_name, '' AS img_url, '' AS tel, '' AS mobile, '' AS mail, '' AS work_division_contents, 0 AS user_odr, 9 AS user_gender
+				UNION ALL
+				SELECT * 
+				  FROM (
+				        SELECT 6 AS sort, rownum, a.dept_id::TEXT, a.dept_name, a.up_dept_id, a.dept_odr, COALESCE(b.user_id, '') user_id, COALESCE(b.user_name, '공 석') AS user_name, COALESCE(b.section_id, '') AS section_id, COALESCE(b.section_name) AS section_name, COALESCE(b.rank_id, 999999) rank_id, COALESCE(b.rank_name) AS rank_name, COALESCE(b.pos_id, 999999) AS pos_id, COALESCE(b.pos_name, '') AS pos_name, COALESCE(b.grade_id, 999999) AS grade_id, COALESCE(b.grade_name, '') AS grade_name, COALESCE(b.img_url,'') AS img_url,COALESCE(b.tel, '') AS tel, COALESCE(b.mobile, '') AS mobile, COALESCE(b.mail, '') AS mail, COALESCE(b.work_division_contents, '') AS work_division_contents, COALESCE(b.odr, 999999) AS user_odr, COALESCE(b.sex, 9) AS user_gender 
+				          FROM 
+				               (
+				                SELECT *
+				                  FROM (
+				                        SELECT (ROW_NUMBER() OVER(PARTITION by a.dept_odr, ( CASE WHEN dept_odr = 4 THEN a.dept_name END ) ORDER BY odr ASC, dept_rank DESC  )) AS ROWNUM, * 
+				                          FROM DATA.ivo_org_dept a 
+				                         WHERE 1=1
+				                           AND mark_yn = 'Y'
+				                           AND use_yn = 1
+				                           AND dept_odr != 4
+				                           AND RIGHT(dept_name, 1) = '동'
+				                           AND (trim(dept_tel) = '' OR dept_tel IS NULL )
+				                            OR up_dept_id IN ( SELECT dept_id FROM DATA.ivo_org_dept WHERE RIGHT(dept_name, 1) = '동' AND dept_odr != 4 AND (trim(dept_tel) = '' OR dept_tel IS NULL ) )
+				                        UNION ALL 
+				                        SELECT CASE WHEN (ROW_NUMBER() OVER()) <![CDATA[<]]> 4 THEN 1 
+				                                           WHEN ( (ROW_NUMBER() OVER()) <![CDATA[<]]> 6 AND (ROW_NUMBER() OVER()) <![CDATA[>]]> 3 ) THEN 2
+				                                           WHEN ( (ROW_NUMBER() OVER()) <![CDATA[<]]> 8 AND (ROW_NUMBER() OVER()) <![CDATA[>]]> 5 ) THEN 3 
+				                                           WHEN ( (ROW_NUMBER() OVER()) <![CDATA[>]]> 7 ) THEN 4 END AS ROWNUM, *
+				                          FROM 
+				                              (
+				                               SELECT * 
+				                                 FROM DATA.ivo_org_dept a
+				                                WHERE 1=1
+				                                  AND mark_yn = 'Y'
+				                                  AND use_yn = 1
+				                                  AND dept_odr != 4
+				                                  AND RIGHT(dept_name, 1) = '동'
+				                                  AND (trim(dept_tel) != '' AND a.dept_tel IS NOT NULL )
+				                             ORDER BY REPLACE(substring(dept_tel, 1, 12), '-', '')::int asc
+				                              ) c
+				                        ) b
+				                ) a
+				        LEFT JOIN
+				               (
+				                SELECT *
+				                  FROM DATA.ivo_org_user
+				                 WHERE 1=1
+				                   AND use_yn = 1
+				                   AND mark_yn = 'Y'
+				                   AND user_status NOT LIKE 'DA%'
+				                   <!-- AND trim(section_id) = ''
+				                   AND trim(section_name) = '' -->
+				                   AND rank_id IS NOT NULL 
+				                   AND rank_id <![CDATA[<>]]> 96800 
+				               ) b
+				          ON a.dept_id = b.dept_id
+				        ORDER BY  rownum ASC, dept_tel = '' DESC , a.odr ASC, CASE WHEN dept_tel != '' THEN REPLACE(substring(dept_tel, 1, 12), '-', '')::int END ASC
+				) d
+				WHERE 1=1
+				UNION ALL
+				<!-- 정무특별보좌관 -->
+				SELECT 7 AS sort, 0 AS rownum, '' AS dept_id, '정무특별 보좌관' AS dept_name, 999999 AS up_dept_id, 0 AS dept_odr, '' AS user_id, '사업소' AS user_name, '' AS section_id, '' AS section_name, 99999 AS rank_id, '' AS rank_name, 999999 AS pos_id, '' AS pos_name, 99999 AS grade_id, '' AS grade_name, '' AS img_url, '' AS tel, '' AS mobile, '' AS mail, '' AS work_division_contents, 0 AS user_odr, 9 AS user_gender
+				UNION ALL
+				SELECT 7 AS sort , rownum, a.dept_id::TEXT AS dept_id, a.dept_name, a.up_dept_id, a.dept_odr, COALESCE(b.user_id, '') user_id, COALESCE(b.user_name, '공 석') AS user_name, COALESCE(b.section_id, '') AS section_id, COALESCE(b.section_name) AS section_name, COALESCE(b.rank_id, 999999) rank_id, COALESCE(b.rank_name) AS rank_name, COALESCE(b.pos_id, 999999) AS pos_id, COALESCE(b.pos_name, '') AS pos_name, COALESCE(b.grade_id, 999999) AS grade_id, COALESCE(b.grade_name, '') AS grade_name, COALESCE(b.img_url,'') AS img_url,COALESCE(b.tel, '') AS tel, COALESCE(b.mobile, '') AS mobile, COALESCE(b.mail, '') AS mail, COALESCE(b.work_division_contents, '') AS work_division_contents, COALESCE(b.odr, 999999) AS user_odr, COALESCE(b.sex, 9) AS user_gender 
+				  FROM 
+				       (
+				        SELECT (ROW_NUMBER() OVER(ORDER BY odr)) AS ROWNUM, 
+				               a.dept_id, CASE WHEN a.dept_id = '38202280000' THEN '정무특보' WHEN a.dept_id='38201690000' THEN '정책특보' END AS dept_name, a.up_dept_id, a.dept_odr
+				          FROM DATA.ivo_org_dept a 
+				         WHERE 1=1
+				           AND dept_id = '38202280000'
+				           or dept_id = '38201690000'
+				        ORDER BY a.dept_id desc
+				        ) a
+				LEFT JOIN
+				       (
+				        SELECT *
+				          FROM DATA.ivo_org_user
+				         WHERE 1=1
+				           AND use_yn = 1
+				           AND mark_yn = 'Y'
+				           AND user_status NOT LIKE 'DA%'
+				           AND pos_id = 24178
+				       ) b
+				  ON a.dept_id = b.dept_id
+				WHERE 1=1
+				ORDER BY 1 ASC
+			) a 
+		) AS a
+		LEFT JOIN 
+		(SELECT user_id,rnk FROM organ_view WHERE rnk IS NOT NULL AND user_name != '공 석') b
+		on a.user_id = b.user_id
+		ORDER BY a.cnt
+
+ 
+	<!-- with recursive org_list( dept_rank_name
+                       , user_nm       
+                       , sex_gb        
+                       , rank_lvl      
+                       , dept_lvl      
+                       , uniq_seq      
+                       , sort_lvl      
+                       , comm_ct_gb    
+                       , tel_no        
+                       , mobile_no     
+                       , email         
+                       , odr_sort      
+                       , node          
+                       , parent_node   
+                       , level             
+                       , path 
+                       , cycle         
+                       ) as 
+                       (
+                         select dept_rank_name
+                              , user_nm
+                              , sex_gb
+                              , rank_lvl
+                              , dept_lvl
+                              , uniq_seq
+                              , sort_lvl
+                              , comm_ct_gb
+                              , tel_no
+                              , mobile_no
+                              , email
+                              , odr_sort
+                              , node
+                              , parent_node
+                              , 0
+                              , array[node]    
+                              , false
+                              , img_url
+                           from fn_organization_chart_table('','38200000000')
+                         union all
+                          select a.dept_rank_name
+                               , a.user_nm
+                               , a.sex_gb
+                               , a.rank_lvl
+                               , a.dept_lvl
+                               , a.uniq_seq
+                               , a.sort_lvl
+                               , a.comm_ct_gb
+                               , a.tel_no
+                               , a.mobile_no
+                               , a.email
+                               , a.odr_sort
+                               , a.node
+                               , a.parent_node
+                               , level + 1
+                               , path || a.node     
+                               , a.node = any(path)
+                               , a.img_url
+                            from fn_organization_chart_table('','') as a
+                               , org_list as b
+                           where 1=1
+                             and a.parent_node = b.node and not cycle
+                       ) 
+                       select t.dept_rank_name
+                            , t.user_nm       
+                            , t.sex_gb        
+                            , t.rank_lvl      
+                            , t.dept_lvl      
+                            , t.uniq_seq      
+                            , t.sort_lvl      
+                            , t.comm_ct_gb    
+                            , t.tel_no        
+                            , t.mobile_no     
+                            , t.email         
+                            , t.odr_sort      
+                            , t.node          
+                            , t.parent_node   
+                            , t.level             
+                            , t.path 
+                            , t.cycle   
+                            , (select count(1)
+                                 from org_list as s
+                                where 1=1 
+                                  and parent_node = t.node) 
+                            , t.img_url
+                         from org_list as t
+                        order by t.path -->
+                                    
+	</select>
+	
+	<!-- 서브 조직도 데이터 가져오기 -->
+	<select id="selectSubOrganization" parameterType="map" resultType="resultCamelMap">
+	 	SELECT   CASE WHEN section_odr IS NULL THEN 0 ELSE section_odr END AS section_odr, 
+            dept_name AS dept_rank_name,
+            section_name AS section_name,
+            CASE WHEN (rank_id = 13600 or rank_id = 36100 or rank_id = 76500 OR rank_id = 35400 ) THEN 4 
+            WHEN rank_id = 58100 THEN 2  END AS rank_lvl,
+            dept_id,
+            user_name AS user_nm,
+            rank_id,
+            rank_name,
+            sex AS sex_gb,
+            tel AS tel_no,
+            mobile AS mobile_no,
+            mail AS email,
+            img_url,
+            odr,
+            rnk AS uniq_seq
+     FROM public.organ_view 
+    WHERE 1=1
+      AND rnk = #{uniqSeq}::numeric
+UNION ALL
+SELECT *
+  FROM (
+        SELECT a.section_odr, 
+               b.dept_name,
+               a.section_name AS dept_name,
+               CASE WHEN rank_id = 96800 THEN 5 
+               ELSE 6 END AS rank_lvl,
+               a.dept_id,
+               b.user_name,
+               b.rank_id,
+               b.rank_name,
+               b.sex_gb,
+               b.tel_no,
+               b.mobile_no,
+               b.email,
+               b.img_url,
+               b.odr,
+               b.rnk
+          FROM (
+                SELECT section_id, section_name, dept_id, section_odr
+                  FROM DATA.ivo_org_section 
+                 WHERE 1=1
+                   AND use_yn = 'Y'
+                   AND mark_yn = 'Y'
+                   AND section_name != '휴직파견'
+                   AND section_id != 'SEC00628'
+                   AND dept_id = ( 
+                                SELECT dept_id  
+                                  FROM public.organ_view
+                                 WHERE 1=1 
+                                   AND rnk = #{uniqSeq}::numeric
+                                  )
+            ) a
+        LEFT JOIN 
+           (
+           SELECT 
+                    user_name,
+                    dept_id,
+                    dept_name,
+                    sex AS sex_gb,
+                    tel AS tel_no,
+                    mobile AS mobile_no,
+                    mail AS email,
+                    SECTION_name,
+                    section_id,
+                    img_url,
+                    odr,
+                    rnk,
+                    rank_id,
+                    rank_name
+             FROM public.organ_view
+            WHERE 1=1
+              AND dept_id = ( 
+                                SELECT dept_id  
+                                  FROM public.organ_view
+                                 WHERE 1=1 
+                                   AND rnk = #{uniqSeq}::numeric
+                                  )
+           ) b
+        ON a.dept_id = b.dept_id
+        WHERE 1=1 
+         AND a.section_id = b.section_id
+        ORDER BY a.section_odr, b.odr
+    ) a
+			<!--  
+		with recursive org_list(  dept_rank_name
+                       , user_nm       
+                       , sex_gb        
+                       , rank_lvl      
+                       , dept_lvl      
+                       , uniq_seq      
+                       , sort_lvl      
+                       , comm_ct_gb    
+                       , tel_no        
+                       , mobile_no    
+                       , email         
+                       , odr_sort      
+                       , node          
+                       , parent_node   
+                       , level             
+                       , path 
+                       , cycle        
+                       , section_name 
+                       , img_url
+              	       , section_odr
+              	       , new_rank_id
+              	       , new_odr
+              	       , new_grade_id
+                       ) as 
+                       ( select *
+                           from (
+		                         select dept_rank_name
+		                              , user_nm
+		                              , sex_gb
+		                              , rank_lvl
+		                              , dept_lvl
+		                              , uniq_seq
+		                              , sort_lvl
+		                              , comm_ct_gb
+		                              , tel_no
+		                              , mobile_no
+		                              , email
+		                              , odr_sort
+		                              , node
+		                              , parent_node
+		                              , 0
+		                              , array[node]    
+		                              , false
+		                              , section_name
+		                              , img_url
+		                              , section_odr
+				              	       , new_rank_id
+				              	       , new_odr
+				              	       , new_grade_id AS new_grade_id2
+		                           from public.fn_organization_chart_detail(#{uniqSeq})
+		                          where 1=1
+		                          ORDER BY rank_lvl 
+		                          LIMIT 1
+                            ) a
+                         union all
+                          select a.dept_rank_name
+                               , a.user_nm
+                               , a.sex_gb
+                               , a.rank_lvl
+                               , a.dept_lvl
+                               , a.uniq_seq
+                               , a.sort_lvl
+                               , a.comm_ct_gb
+                               , a.tel_no
+                               , a.mobile_no
+                               , a.email
+                               , a.odr_sort
+                               , a.node
+                               , a.parent_node
+                               , level + 1
+                               , path || a.node     
+                               , a.node = any(path)
+                               , a.section_name
+                               , a.img_url
+                              , a.section_odr
+		              	       , a.new_rank_id
+		              	       , a.new_odr
+		              	       , a.new_grade_id
+                            from public.fn_organization_chart_detail(#{uniqSeq}) as a
+                               , org_list as b
+                           where 1=1
+                             and a.parent_node = b.node and not cycle
+                       ) 
+                       select t.dept_rank_name
+                            , t.user_nm       
+                            , t.sex_gb        
+                            , t.rank_lvl      
+                            , t.dept_lvl      
+                            , t.uniq_seq      
+                            , t.sort_lvl      
+                            , t.comm_ct_gb    
+                            , case when t.tel_no is null then '' else t.tel_no end as tel_no      
+                            , t.mobile_no     
+                            , t.email         
+                            , t.odr_sort
+                            , t.node          
+                            , t.parent_node   
+                            , t.level             
+                            , t.path 
+                            , t.cycle   
+                            , (select count(1)
+                                 from org_list as s
+                                where 1=1 
+                                  and parent_node = t.node) 
+                            , t.section_name
+                            , t.img_url
+                            , t.section_odr
+	              	       , t.new_rank_id
+	              	       , t.new_odr
+	              	       , t.new_grade_id
+                         from org_list as t
+                        where t.user_nm not like '대시보드%'
+                        order by parent_node IS NULL desc, section_odr asc nulls first , t.new_rank_id, t.new_odr, t.new_grade_id, t.tel_no
+                        -->
+		<!-- select *
+		  from public.fn_organization_chart_detail(#{uniqSeq}) -->
+	</select>
+	
+	<!-- 조직원 정보 데이터 가져오기 -->
+	<select id="selectDetailMember" parameterType="map" resultType="resultCamelMap">
+		SELECT dept_name,
+	         rank_name,
+	         section_name,
+	  		 user_name,
+	  		 tel,
+	  		 mobile,
+	  		 mail,
+	  		 img_url
+	    FROM organ_view
+	   WHERE 1=1
+	     AND rnk = #{uniqSeq}::numeric;
+	</select>
+	
+	<delete id="deleteOrgData">
+		DELETE 
+		  FROM DATA.ivo_org_user
+		  WHERE user_name = '공 석';
+	</delete>
+	
+	<insert id="insertOrgData">
+		INSERT INTO DATA.ivo_org_user
+		  SELECT '' AS user_id, '공 석' AS user_name, NULL AS jumin_sn, 
+		          '' AS  section_id, '' AS section_name, a.dept_id, a.dept_name,
+		          CASE WHEN a.dept_name LIKE '%과' THEN 13600
+		               WHEN a.dept_name LIKE '%동' THEN 36100
+		               WHEN a.dept_id = 38200010000 THEN 55300
+		               WHEN a.dept_id = 38202990000 THEN 35100
+		               WHEN a.dept_id = 38200970000 THEN 35400
+		               WHEN a.dept_id = 38200500000 OR a.dept_id = 38203080000 OR  a.dept_id = 38202750000 THEN 57400
+		               WHEN a.dept_id = (SELECT dept_id FROM (SELECT dept_id FROM DATA.ivo_org_dept WHERE dept_odr = 3 AND mark_yn = 'Y' AND use_yn = 1 AND dept_name NOT LIKE '%동' AND dept_name NOT IN ('시장', '부시장') ORDER BY odr LIMIT 5) b WHERE b.dept_id = a.dept_id) THEN 15800 ELSE NULL END AS rank_id,
+		          CASE WHEN a.dept_name LIKE '%과' THEN '과장'
+		               WHEN a.dept_name LIKE '%동' THEN '동장'
+		               WHEN a.dept_id = 38200010000 THEN '사무국장'
+		               WHEN a.dept_id = 38202990000 THEN '단장'
+		               WHEN a.dept_id = 38200970000 THEN '담당관'
+		               WHEN a.dept_id = 38200500000 OR a.dept_id = 38203080000 OR  a.dept_id = 38202750000 THEN '소장'
+		               WHEN a.dept_id = (SELECT dept_id FROM (SELECT dept_id FROM DATA.ivo_org_dept WHERE dept_odr = 3 AND mark_yn = 'Y' AND use_yn = 1 AND dept_name NOT LIKE '%동' AND dept_name NOT IN ('시장', '부시장') ORDER BY odr LIMIT 5) b WHERE b.dept_id = a.dept_id) THEN '국장' ELSE NULL END AS rank_name,
+		               999 AS pos_id, '' AS pos_name,
+		               NULL AS duty_id, '' AS duty_name,
+		               NULL AS grade_id, '' AS grade_name,
+		               '' AS img_url, '' AS tel, '' AS mobile,
+		               '' AS mail, NULL AS birth_date, '' AS work_division_contents, 
+		               1 AS odr, 1 AS use_yn, 'Y' AS mark_yn, '' AS first_appoint_date, 
+		               '' AS dept_appoint_date,
+		               'AAA' AS user_status, '재직' AS user_status_name,
+		               '' AS saiall_user_id, 
+		               '' AS change_date,
+		               '' AS regist_id,
+		               '' AS regist_name,
+		               '' AS reg_date,
+		               '' AS linkage_yn,
+		               '' AS homepage_yn,
+		               '' attachment_yn,
+		               1 AS sex,
+		               '' AS birth_ymd,
+		               '' AS logon_id,
+		               '' AS work_place
+		     FROM 
+		    (      
+		    SELECT *
+		      FROM DATA.ivo_org_dept 
+		     WHERE dept_odr = 3
+		       AND mark_yn = 'Y'
+		       AND use_yn = 1
+		       AND dept_name NOT LIKE '%동'
+		    UNION ALL 
+		    SELECT *
+		      FROM (
+		            SELECT *
+		              FROM DATA.ivo_org_dept 
+		             WHERE dept_odr = 3
+		               AND mark_yn = 'Y'
+		               AND use_yn = 1
+		               AND dept_name LIKE '%동'
+		            ) a
+		    UNION ALL
+		    SELECT *
+		      FROM DATA.ivo_org_dept 
+		     WHERE dept_odr = 4
+		       AND mark_yn = 'Y'
+		       AND use_yn = 1
+		       AND dept_name NOT LIKE '%동'
+		   ORDER BY odr            
+		    ) a
+		    LEFT JOIN 
+		    (
+		    SELECT * 
+		      FROM DATA.ivo_org_user b
+		     WHERE 1=1
+		       AND b.mark_yn = 'Y'
+		       AND b.use_yn = 1
+		       AND user_status = 'AAA' 
+		       AND rank_id in (57800, 47200, 35100, 57400, 36100, 15800, 55300, 13600, 35400)
+		    ) b
+		    ON a.dept_id = b.dept_id
+		    WHERE 1=1
+		      AND b.user_id IS NULL 
+		      ORDER BY a.odr
+	</insert>
+	
+	<select id="selectOrgCnt" resultType="resultCamelMap">
+		SELECT '' AS user_id, '공 석' AS user_name, NULL AS jumin_sn, 
+		          '' AS  section_id, '' AS section_name, a.dept_id, a.dept_name,
+		          CASE WHEN a.dept_name LIKE '%과' THEN 13600
+		               WHEN a.dept_name LIKE '%동' THEN 36100
+		               WHEN a.dept_id = 38200010000 THEN 55300
+		               WHEN a.dept_id = 38202990000 THEN 35100
+		               WHEN a.dept_id = 38200970000 THEN 35400
+		               WHEN a.dept_id = 38200500000 OR a.dept_id = 38203080000 OR  a.dept_id = 38202750000 THEN 57400
+		               WHEN a.dept_id = (SELECT dept_id FROM (SELECT dept_id FROM DATA.ivo_org_dept WHERE dept_odr = 3 AND mark_yn = 'Y' AND use_yn = 1 AND dept_name NOT LIKE '%동' AND dept_name NOT IN ('시장', '부시장') ORDER BY odr LIMIT 5) b WHERE b.dept_id = a.dept_id) THEN 15800 ELSE NULL END AS rank_id,
+		          CASE WHEN a.dept_name LIKE '%과' THEN '과장'
+		               WHEN a.dept_name LIKE '%동' THEN '동장'
+		               WHEN a.dept_id = 38200010000 THEN '사무국장'
+		               WHEN a.dept_id = 38202990000 THEN '단장'
+		               WHEN a.dept_id = 38200970000 THEN '담당관'
+		               WHEN a.dept_id = 38200500000 OR a.dept_id = 38203080000 OR  a.dept_id = 38202750000 THEN '소장'
+		               WHEN a.dept_id = (SELECT dept_id FROM (SELECT dept_id FROM DATA.ivo_org_dept WHERE dept_odr = 3 AND mark_yn = 'Y' AND use_yn = 1 AND dept_name NOT LIKE '%동' AND dept_name NOT IN ('시장', '부시장') ORDER BY odr LIMIT 5) b WHERE b.dept_id = a.dept_id) THEN '국장' ELSE NULL END AS rank_name,
+		               999 AS pos_id, '' AS pos_name,
+		               NULL AS duty_id, '' AS duty_name,
+		               NULL AS grade_id, '' AS grade_name,
+		               '' AS img_url, '' AS tel, '' AS mobile,
+		               '' AS mail, NULL AS birth_date, '' AS work_division_contents, 
+		               1 AS odr, 1 AS use_yn, 'Y' AS mark_yn, '' AS first_appoint_date, 
+		               '' AS dept_appoint_date,
+		               'AAA' AS user_status, '재직' AS user_status_name,
+		               '' AS saiall_user_id, 
+		               '' AS change_date,
+		               '' AS regist_id,
+		               '' AS regist_name,
+		               '' AS reg_date,
+		               '' AS linkage_yn,
+		               '' AS homepage_yn,
+		               '' attachment_yn,
+		               1 AS sex,
+		               '' AS birth_ymd,
+		               '' AS logon_id,
+		               '' AS work_place
+		     FROM 
+		    (      
+		    SELECT *
+		      FROM DATA.ivo_org_dept 
+		     WHERE dept_odr = 3
+		       AND mark_yn = 'Y'
+		       AND use_yn = 1
+		       AND dept_name NOT LIKE '%동'
+		    UNION ALL 
+		    SELECT *
+		      FROM (
+		            SELECT *
+		              FROM DATA.ivo_org_dept 
+		             WHERE dept_odr = 3
+		               AND mark_yn = 'Y'
+		               AND use_yn = 1
+		               AND dept_name LIKE '%동'
+		            ) a
+		    UNION ALL
+		    SELECT *
+		      FROM DATA.ivo_org_dept 
+		     WHERE dept_odr = 4
+		       AND mark_yn = 'Y'
+		       AND use_yn = 1
+		       AND dept_name NOT LIKE '%동'
+		   ORDER BY odr            
+		    ) a
+		    LEFT JOIN 
+		    (
+		    SELECT * 
+		      FROM DATA.ivo_org_user b
+		     WHERE 1=1
+		       AND b.mark_yn = 'Y'
+		       AND b.use_yn = 1
+		       AND user_status = 'AAA' 
+		       AND rank_id in (57800, 47200, 35100, 57400, 36100, 15800, 55300, 13600, 35400)
+		    ) b
+		    ON a.dept_id = b.dept_id
+		    WHERE 1=1
+		      AND b.user_id IS NULL 
+		      ORDER BY a.odr
+	</select>
+	
+	
+</mapper>

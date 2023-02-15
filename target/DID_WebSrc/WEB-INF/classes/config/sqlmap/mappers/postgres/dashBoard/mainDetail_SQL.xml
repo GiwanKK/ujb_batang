@@ -1,0 +1,676 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="MainDetailMapper">
+	
+	<!-- 수목 조회 -->
+	<select id="selectMainTreeDetail" parameterType="String" resultType="resultCamelMap">
+		SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형' , "유형", 
+								'수목명' , "수목명",
+								'수목위치' , "수목위치", 
+								'주소' , "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT  ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+								        "주소", "유형", "수목명", "수목위치"
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom, "주소", "유형", "수목명", "수목위치"
+										  FROM  
+												(SELECT "수목경도" as x, "수목위도" as y , "지번주소" as "주소", "수목구분" as "유형",
+										        	   "수목명" as "수목명", "수목위치" as "수목위치"
+										          from data.ifm_tree
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+								   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+								   </if>
+							) a
+						) a
+					) 
+				) as data	
+	</select>
+	
+	<!-- 공원수목  조회 -->
+	<select id="selectMainTreeParkDetail" parameterType="String" resultType="resultCamelMap">
+		SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형' , "유형",
+								'나무명' , "나무명",
+								'공원명' , "공원명",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT  ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+								        "주소", "유형", "나무명", "공원명"
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom,
+								       			"주소", "유형", "나무명", "공원명"
+										  FROM  
+												(SELECT "경도" as x, "위도" as y , "지번주소" as "주소",
+														'공원수목' as "유형",
+												        "나무명" as "나무명", "공원명" as "공원명" 
+												   from data.ifm_park_trees
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+								   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+								   </if>
+							) a
+						) a
+					) 
+				) as data	
+	
+	</select>
+	
+	<!-- 어린이집  조회 -->
+	<select id="selectMainChildrenDetail" parameterType="String" resultType="resultCamelMap">
+		  SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형', "유형",
+								'어린이집 유형', "어린이집 유형",
+								'어린이집명', "어린이집명",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+									   "유형", "어린이집명", "어린이집 유형", "주소"
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom ,
+												"유형", "어린이집명", "어린이집 유형", "주소"
+										  FROM  
+												(SELECT refine_wgs84_lat::NUMERIC as y, refine_wgs84_logt::NUMERIC as x ,
+														'어린이집' as "유형",
+														kidgartn_nm as "어린이집명",
+														kidgartn_div_nm as "어린이집 유형",
+														refine_lotno_addr as "주소"
+												   FROM data.eao_childhouse
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+								   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+								   </if>
+							) a
+						) a
+					) 
+				) as data	
+	</select>
+	
+	<!-- 신호등  조회 -->
+	<select id="selectMainTrafficDetail" parameterType="String" resultType="resultCamelMap">
+		SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형', "유형",
+								'신호등관리번호', "신호등관리번호",
+								'도로노선명', "도로노선명",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT  ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+								        "유형", "신호등관리번호", "도로노선명", "주소"
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom,
+										 		"유형", "신호등관리번호", "도로노선명", "주소"
+										  FROM  
+												(SELECT "경도" as x, "위도" as y ,
+														'신호등' as "유형",
+														"신호등관리번호" as "신호등관리번호",
+														"도로노선명" as "도로노선명",
+														"소재지 지번주소" as "주소"
+												   from data.ifm_traffic_lights
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+								   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+								   </if>
+							) a
+						) a
+					) 
+				) as data			
+	</select>
+	
+	<!-- 횡단보도  조회 -->
+	<select id="selectMainCrosswalkDetail" parameterType="String" resultType="resultCamelMap">
+		SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형', "유형",
+								'도로명', "도로명",
+								'횡단보도관리번호', "횡단보도관리번호",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT  ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+								        "유형", "도로명", "횡단보도관리번호", "주소" 
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom,
+											   "유형", "도로명", "횡단보도관리번호", "주소" 
+										  FROM  
+												(SELECT "경도" as x, "위도" as y ,
+														'횡단보도' as "유형",
+														"도로명" as "도로명",
+														"횡단보도관리번호" as "횡단보도관리번호", 
+														"소재지 지번주소" as "주소" 
+												   from data.ifm_cross_walk
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+								   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+								   </if>
+							) a
+						) a
+					) 
+				) as data	
+	</select>
+	
+	<!-- 안전표지  조회 -->
+	<select id="selectMainSafetySignDetail" parameterType="String" resultType="resultCamelMap">
+		SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형', "유형",
+								'도로노선명', "도로노선명",
+								'도로안전표지 설명', "도로안전표지 설명",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT  ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+								        "유형","도로노선명", "도로안전표지 설명", "주소" 
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom,
+								      		  "유형","도로노선명", "도로안전표지 설명", "주소" 
+										  FROM  
+												(SELECT "경도" as x, "위도" as y ,
+														'안전표지' as "유형",
+														"도로노선명" as "도로노선명",
+														"도로안전표지 설명" as "도로안전표지 설명", 
+														"소재지 지번주소" as "주소" 
+												   from data.ifm_road_safety_signs
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+								   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+								   </if>
+							) a
+						) a
+					) 
+				) as data	
+	
+	</select>
+	
+	<!-- 안전비상벨  조회 -->
+	<select id="selectMainEmergencyBellDetail" parameterType="String" resultType="resultCamelMap">
+		  SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형', "유형",
+								'설치지역', "설치지역",
+								'비상벨 유형', "비상벨 유형",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+									   "유형", "설치지역", "비상벨 유형", "주소" 
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom,
+											   "유형", "설치지역", "비상벨 유형", "주소" 
+										  FROM  
+												(SELECT "REFINE_WGS84_LAT"::NUMERIC as y, "REFINE_WGS84_LOGT"::NUMERIC as x,
+														'안전비상벨' as "유형",
+														 "INSTL_LOC" as "설치지역",
+														"ADDITN_SKLL_INFO" as "비상벨 유형", 
+														"REFINE_LOTNO_ADDR" as "주소" 
+												   FROM data.eao_safeemrgncbell
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+								   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+								   </if>
+							) a
+						) a
+					) 
+				) as data	
+	</select>
+	
+	
+	<!-- CCTV  조회 -->
+	<select id="selectMainCctvDetail" parameterType="String" resultType="resultCamelMap">
+		  SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형', "유형",
+								'CCTV종류', "CCTV종류",
+								'CCTV 설치수', "CCTV 설치수",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+								       "유형", "CCTV종류", "CCTV 설치수", "주소"  
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom ,
+												"유형", "CCTV종류", "CCTV 설치수", "주소"  
+										  FROM  
+												(SELECT "WGS84_LAT"::NUMERIC as y, "WGS84_LOGT"::NUMERIC as x ,
+														'CCTV' as "유형",
+														 "INSTL_PUPRS_DIV_NM" as "CCTV종류",
+														"CAMERA_CNT" as "CCTV 설치수", 
+														"REFINE_LOTNO_ADDR" as "주소" 
+												   FROM data.eao_cctv
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+								   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+								   </if>
+							) a
+						) a
+					) 
+				) as data	
+	</select>
+	
+	<!-- 무료와이파이  조회 -->
+	<select id="selectMainWifiDetail" parameterType="String" resultType="resultCamelMap">
+		  SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형', "유형",
+								'설치 장소', "설치 장소",
+								'관리 시설', "관리시설",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+									   "유형", "설치 장소", "관리시설", "주소"
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom,
+										        "유형", "설치 장소", "관리시설", "주소"
+										  FROM  
+												(SELECT "REFINE_WGS84_LAT"::NUMERIC as y, "REFINE_WGS84_LOGT"::NUMERIC as x,
+														'무료와이파이' as "유형",
+														"INSTL_PLC_DETAIL_DTLS" as "설치 장소",
+														"INSTL_FACLT_DIV_NM" as "관리시설", 
+														"REFINE_LOTNO_ADDR" as "주소"  
+												   FROM data.eao_freechargewifi
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+								   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+								   </if>
+							) a
+						) a
+					) 
+				) as data	
+	</select>
+	
+	
+	<!-- 주차장  조회 -->
+	<select id="selectMainParkingDetail" parameterType="String" resultType="resultCamelMap">
+		  SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형', "유형",
+								'주차장위치', "주차장위치",
+								'주차장유형', "주차장유형",
+								'최초 비용', "최초 비용",
+								'초과 주차시', "초과 주차시",
+								'1일주차권요금', "1일주차권요금",
+								'월정기권요금', "월정기권요금",
+								'추자가능수', "추자가능수",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+										 "유형","주차장위치", "주차장유형", "최초 비용", "초과 주차시", "1일주차권요금",  "월정기권요금","추자가능수", "주소"
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom, 
+										          "유형","주차장위치", "주차장유형", "최초 비용", "초과 주차시", "1일주차권요금",  "월정기권요금","추자가능수", "주소"
+										  FROM  
+												(SELECT "REFINE_WGS84_LAT"::NUMERIC as y, "REFINE_WGS84_LOGT"::NUMERIC as x,
+														'주차장' as "유형",
+														"PARKNG_BASIS_TM" || '분당 ' || "PARKNG_BASIS_USE_CHRG" || '원' as "최초 비용",
+														"ADD_UNIT_TM" || '분당 ' || "ADD_UNIT_TM2_WITHIN_USE_CHRG" || '원,' as "초과 주차시", 
+														"DAY1_PARKTK_USE_CHRG" as "1일주차권요금", 
+														"MT_CMMTICKT_WEEK_USE_CHRG" as "월정기권요금",
+														"PARKNG_COMPRT_PLANE_CNT" as "추자가능수",
+														"CHRG_INFO" as "주차장유형",
+														"TMP01" as "주차장위치",
+														"REFINE_LOTNO_ADDR" as "주소" 
+												   FROM data.eao_parkingplace
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+								   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+								   </if>
+							) a
+						) a
+					) 
+				) as data	
+	</select>
+	
+	<!-- 소방용수시설  조회 -->
+	<select id="selectMainFirefightingDetail" parameterType="String" resultType="resultCamelMap">
+		  SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형', "유형",
+								'상세위치', "상세위치",
+								'안전센터명', "안전센터명",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+										"유형", "상세위치", "안전센터명", "주소" 
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom,
+											    "유형", "상세위치", "안전센터명", "주소" 
+										  FROM  
+												(SELECT "REFINE_WGS84_LAT"::NUMERIC as y, "REFINE_WGS84_LOGT"::NUMERIC as x,
+														'소방용수시설' as "유형",
+														 "DETAIL_LOC" as "상세위치",
+														"SAFE_CENTER_NM" as "안전센터명", 
+														"REFINE_LOTNO_ADDR" as "주소"  
+												   FROM data.eao_firefgtuswtrfaclt
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+								   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+								   </if>
+							) a
+						) a
+					) 
+				) as data
+	</select>
+	
+	<!-- 어린이보호구역  조회 -->
+	<select id="selectMainChildrenSanctuaryDetail" parameterType="String" resultType="resultCamelMap">
+		  SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형', "유형",
+								'시설명', "시설명",
+								'CCTV수', "CCTV수",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+								       "유형",  "시설명", "CCTV수", "주소" 
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom,
+										       "유형",  "시설명", "CCTV수", "주소" 
+										  FROM  
+												(SELECT "REFINE_WGS84_LAT"::NUMERIC as y, "REFINE_WGS84_LOGT"::NUMERIC as x,
+														'어린이보호구역' as "유형", 
+														"TARGET_FACLT_NM" as "시설명",
+														"CCTV_INSTL_CNT" as "CCTV수", 
+														"REFINE_LOTNO_ADDR" as "주소"  
+												   FROM data.eao_childprotectionarea
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+							   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+							   </if>
+							) a
+						) a
+					) 
+				)	as data 
+	</select>
+	
+	
+	<!-- 안내표지  조회 -->
+	<select id="selectMainGuideSignDetail" parameterType="String" resultType="resultCamelMap">
+		  SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+								'유형', "유형",
+								'일련번호', "일련번호",
+								'도로노선명', "도로노선명",
+								'차로수', "차로수",
+								'주소', "주소"
+								), 
+								'geometry', a.geom
+							) as features
+						  FROM (
+								SELECT ST_AsGeoJSON(ST_TRANSFORM(a.geom, 4326)) geom, b.DONG_NM,
+								       "유형", "일련번호",  "도로노선명", "차로수", "주소" 
+								  FROM 
+								  	  (
+										SELECT ST_TRANSFORM(ST_SETSRID(ST_POINT(x, y) , 4326), 5179) as geom,
+										       "유형", "일련번호", "도로노선명", "차로수",  "주소" 
+										  FROM  
+												(SELECT "위도"::NUMERIC as y, "경도"::NUMERIC as x,
+														'안내표지' as "유형",
+														"도로안내표지일련번호" as "일련번호", 
+														"도로노선명" as "도로노선명",
+														"차로수" as "차로수",
+														"소재지 지번주소" as "주소"  
+												   FROM data.ifm_road_guide_signs
+											  	) a
+									   ) a, public.CMM_DONG_BNDR b
+								 WHERE 1=1
+								   AND st_intersects(a.geom, b.geom)
+							   <if test="dongName != null and dongName != ''">
+								   AND b.DONG_NM = #{dongName}
+							   </if>
+							) a
+						) a
+					) 
+				)	as data 
+	</select>
+	
+	<!-- 행정동 센터포인트 -->
+	<select id="selectDongCenterPoint" parameterType="map" resultType="resultCamelMap">
+		SELECT ST_X(ST_ASTEXT(ST_TRANSFORM(st_pointonsurface(geom), 4326))) x, ST_Y(ST_ASTEXT(ST_TRANSFORM(st_pointonsurface(geom), 4326))) as y, dong_nm, dong_cd
+		  FROM public.CMM_DONG_BNDR 
+		 WHERE 1=1
+		 <if test="dongName != null and dongName != ''">
+		   AND dong_nm = #{dongName}
+	     </if>
+		 <if test="dongCd != null and dongCd != ''">
+		   AND dong_cd = #{dongCd}
+	     </if>
+	</select>
+	
+	<!-- 행정동  -->
+	<select id="selectDongList" resultType="resultCamelMap">
+		SELECT dong_cd as code, dong_nm as name
+		  FROM public.CMM_DONG_BNDR 
+	</select>
+	
+	<select id="selectAdmdAreaLine" resultType="resultCamelMap">
+		select
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					select
+						array_to_json(array_agg(b.features)) 
+					from (
+						select
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+									'admd_cd', a.dong_cd, 
+									'admd_nm', a.dong_NM
+								), 
+								'geometry', a.geom
+							) as features
+						from (
+							select
+								ST_AsGeoJSON(st_geometryn(st_transform(geom, 4326), 1))::jsonb as geom,
+								dong_cd,
+								dong_nm
+							FROM  cmm_dong_bndr
+						) a
+					) b
+				)
+			) as data
+	</select>
+	
+</mapper>

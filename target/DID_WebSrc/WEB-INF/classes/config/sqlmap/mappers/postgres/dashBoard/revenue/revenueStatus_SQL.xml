@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="RevenueStatusMapper">
+	<!-- 세입징수현황 검색기간   -->
+	<select id="selectRevntatusDate" resultType="resultCamelMap">
+		SELECT to_char(to_date(max(stac_ymd), 'YYYYMM'),'yyyy-mm') as max, to_char(to_date(min(stac_ymd), 'YYYYMM'),'yyyy-mm') as min
+		  FROM data.stac_tr_data
+		 WHERE 1=1
+		   AND STAC_CD = 'TR_ANV_002'
+	</select>
+	
+	<!-- 세입징수현황 - 세입징수현황 -->
+	<select id="selectRevnStatus" parameterType="map" resultType="resultCamelMap">
+		<if test="std != null and std == 'mm'">
+			SELECT MAIN_TATM_NM as main_name, LEVY_TATM_NM as sub_name,   RCVMT_AMT, LEVY_AMT, RDCA_AMT, LOSS_AMT, OVRP_AMT
+			  FROM mart.pdt_tr_levy_sttu 
+			 WHERE 1=1
+	 		<if test="startDate != null and startDate != ''">
+				   AND CRTR_YM = #{startDate}
+			 </if>
+		    ORDER BY MAIN_TATM_CD asc
+		</if>
+		<!-- limit 20; -->
+		 <if test="std != null and std == 'yy'">
+		 	SELECT MAIN_TATM_NM as main_name, LEVY_TATM_NM as sub_name
+			     , sum(RCVMT_AMT) AS  RCVMT_AMT, sum(LEVY_AMT) AS LEVY_AMT , sum(RDCA_AMT) AS RDCA_AMT , sum(LOSS_AMT) AS LOSS_AMT , sum(OVRP_AMT) AS  OVRP_AMT
+		      FROM mart.pdt_tr_levy_sttu 
+		 WHERE 1=1
+	 		<if test="startDate != null and startDate != ''">
+			   AND CRTR_YM like #{startDate}||'%'
+		   </if>
+		GROUP BY LEFT(CRTR_YM, 4), main_name, sub_name, MAIN_TATM_CD
+		ORDER BY MAIN_TATM_CD ASC
+		 </if>
+ 
+	</select>
+	
+	<!-- 세입징수현황 - 세입징수현황차트 -->
+	<select id="selectRevnStatusChart" parameterType="map" resultType="resultCamelMap">
+		select 
+		  MAIN_TATM_NM as main_name, MAIN_TATM_CD as code, sum(RCVMT_AMT) as sum
+		  from mart.pdt_tr_levy_sttu 
+		 where 1=1 
+ 		<if test="startDate != null and startDate != ''">
+		   <if test="std != null and std == 'mm'">
+			   AND CRTR_YM = #{startDate}
+		   </if>
+		   <if test="std != null and std == 'yy'">
+			   AND CRTR_YM like #{startDate}||'%'
+		   </if>
+		</if>
+		   and RCVMT_AMT >= 0
+		group by 
+		 MAIN_TATM_NM, MAIN_TATM_CD
+		ORDER BY sum(RCVMT_AMT) desc
+		limit 15;
+ 
+	</select>
+	<!-- 세입징수현황 - 세입징수현황서브 -->
+	<select id="selectRevnStatusChartSub" parameterType="map" resultType="resultCamelMap">
+				
+		select LEVY_TATM_NM as name, LEVY_TATM_CD as code, RCVMT_AMT as value
+		  from mart.pdt_tr_levy_sttu 
+		 where 1=1 
+ 		<if test="startDate != null and startDate != ''">
+		   <if test="std != null and std == 'mm'">
+			   AND CRTR_YM = #{startDate}
+		   </if>
+		   <if test="std != null and std == 'yy'">
+			   AND CRTR_YM like #{startDate}||'%'
+		   </if>
+		 </if>
+ 		<if test="code != null and code != ''">
+		   and MAIN_TATM_CD = #{code}
+		</if>
+		   and RCVMT_AMT >= 0
+ 
+	</select>
+	
+	<!-- 세입징수현황 - 연도별 세입징수 추이 -->
+	<select id="selectRevnStatusYear" parameterType="map" resultType="resultCamelMap">
+		SELECT * 
+		  FROM (
+				SELECT round(ATRB_01/100000000,0) ATRB_01, stac_ymd
+				  FROM data.stac_tr_data
+				 WHERE 1=1
+				   AND STAC_CD = 'TR_ANV_001'
+				ORDER BY stac_ymd desc
+				LIMIT 10
+				) a 
+		ORDER BY stac_ymd ASC;
+	</select>
+	
+	<!-- 세입징수현황 - 항목별 세입징수 현황 -->
+	<select id="selectRevnStatusMain" parameterType="map" resultType="resultCamelMap">
+		SELECT 
+		   <if test="std != null and std == 'yy'">
+		   	 round(sum(ATRB_01)/100000000,0) AS ATRB_01,
+		   </if>
+		   <if test="std != null and std == 'mm'">
+			round(ATRB_01/100000000,0) AS ATRB_01,
+		   </if>
+		   STAC_SE
+		  FROM data.stac_tr_data
+		 WHERE 1=1
+		 <if test="startDate != null and startDate != ''">
+		   <if test="std != null and std == 'mm'">
+			   AND stac_ymd = #{startDate}
+		   </if>
+		   <if test="std != null and std == 'yy'">
+			   AND stac_ymd like #{startDate}||'%'
+		   </if>
+		 </if>
+		   AND STAC_CD = 'TR_ANV_002'
+		   AND round(ATRB_01/100000000,0) > 0
+		   <if test="std != null and std == 'yy'">
+		    GROUP BY LEFT(stac_ymd, 4), stac_se
+		   </if>
+ 		ORDER BY ATRB_01 desc;
+	</select>
+	
+	<!-- 세입징수현황 - 전년대비 세목별 세입징수 현황 -->
+	<select id="selectRevnStatusSub" parameterType="map" resultType="resultCamelMap">
+		SELECT round(ATRB_01/100000000,0) ATRB_01, round(ATRB_02/100000000,0) ATRB_02, STAC_SE
+		  FROM data.stac_tr_data
+		 WHERE 1=1
+		   AND STAC_CD = 'TR_ANV_003'
+		 <if test="startDate != null and startDate != ''">
+		   AND stac_ymd = substr(#{startDate}, 1, 4)
+		 </if>
+		ORDER BY ATRB_02 desc
+		limit 8;
+	</select>
+</mapper>

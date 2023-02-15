@@ -1,0 +1,25 @@
+@charset "utf-8";
+/* CSS Document */
+
+.graph_481 {clear:both;display:inline-block;width:100%;height:481px}
+.tax_desc, .overdue_desc {width:100%;height:380px;padding-top:20px}
+.tax_list, .overdue_list {width:100%;height:323px;overflow-y:scroll}
+
+.right_subchart {clear:both;display:inline-block;width:100%;height:300px}
+.graph_268 {width:100%;height:268px}
+.right_subchart2, .right_subchart3 {clear:both;display:inline-block;width:100%;height:280px;margin-top:20px;overflow-x:auto}
+.graph_248 {width:100%;height:248px}
+
+.overdue_map {clear:both;display:inline-block;width:100%;height:481px;position:relative}
+.select_map {display:inline-block;width:100px;position:absolute;top:78px;left:56px;z-index:9}
+.select_map li {display:inline-block;width:100%;padding-bottom:8px}
+
+.tax_map01 .rm01 {background-color:#f8d9cd}
+.tax_map01 .rm02 {background-color:#efa186}
+.tax_map01 .rm03 {background-color:#e6744e}
+.tax_map01 .rm04 {background-color:#c7502e}
+.tax_map01 .rm05 {background-color:#99381e}
+
+.right_subchart4 {display:inline-block;width:100%;height:580px;margin-top:20px}
+.overdue_items {display:inline-block;width:100%; height:511px;}
+.items_list {display:inline-block;width:100%;height:511px;overflow-y:scroll}

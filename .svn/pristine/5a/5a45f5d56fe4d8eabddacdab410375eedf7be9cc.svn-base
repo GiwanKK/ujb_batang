@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="PopulationStaticMapper">
+	<!-- 인구현황 검색기간   -->
+	<select id="selectPopStaticDate" resultType="resultCamelMap">
+		SELECT  to_char(to_date(max(stac_ymd), 'YYYYMM'),'yyyy-mm') as max, to_char(to_date(min(stac_ymd), 'YYYYMM'),'yyyy-mm') as min
+		  FROM data.stac_po_data
+		 WHERE 1=1
+		   AND (STAC_CD = 'PO_STT_001' or stac_cd='PO_STT_002' or stac_cd = 'PO_STT_003')
+	</select>
+	<!-- 인구 - 인구현황 -->
+	<select id="selectPopStatus" parameterType="map" resultType="resultCamelMap">
+		 SELECT * 
+		  FROM data.stac_po_data a ,
+		  (select max(stac_ymd) maxDate 
+			  from data.stac_po_data	
+			  where 1=1 AND STAC_CD = 'PO_STT_001') b
+		 WHERE 1=1
+		   AND stac_ymd = b.maxDate
+		   AND STAC_CD = 'PO_STT_001'
+	</select>
+	<!-- 인구 - 인구현황 -->
+	<select id="selectPopStatusDt" parameterType="map" resultType="resultCamelMap">
+		 SELECT * 
+		  FROM data.stac_po_data_dt a,
+		  	(select max(stac_ymd) maxDate 
+			  from data.stac_po_data_dt	
+			  where 1=1 AND STAC_CD = 'PO_STT_DT_001') b
+		 WHERE 1=1
+		   AND STAC_CD = 'PO_STT_DT_001'
+		   and stac_ymd = b.maxDate
+	</select>
+	<!-- 인구 - 총인구 추이 -->
+	<select id="selectPopTotalTrend" parameterType="map" resultType="resultCamelMap">
+		SELECT stac_ymd,  atrb_01::int, atrb_02::int
+		  FROM data.stac_po_data
+		 WHERE 1=1
+		   AND STAC_CD = 'PO_STT_002'
+		 ORDER BY stac_ymd desc  
+ 		 LIMIT 5;
+	</select>
+	
+	<!-- 인구 - 연령별 인구현황 -->
+	<select id="selectPopAgeStatus" parameterType="map" resultType="resultCamelMap">
+		SELECT atrb_01, atrb_02::int, atrb_03::int, atrb_04::int, stac_se,
+		  CASE WHEN stac_se = '000' THEN '0세 ~ 9세'   
+		       WHEN stac_se = '010' THEN '10세 ~ 19세' 
+		       WHEN stac_se = '020' THEN '20세 ~ 29세' 
+		       WHEN stac_se = '030' THEN '30세 ~ 39세' 
+		       WHEN stac_se = '040' THEN '40세 ~ 49세' 
+		       WHEN stac_se = '050' THEN '50세 ~ 59세' 
+		       WHEN stac_se = '060' THEN '60세 ~ 69세' 
+		       WHEN stac_se = '070' THEN '70세 ~ 79세' 
+		       WHEN stac_se = '080' THEN '80세 ~ 89세' 
+		       WHEN stac_se = '090' THEN '90세 ~ 99세' 
+		       WHEN stac_se = '100' THEN '100세이상' end as stac_se2
+		  FROM data.stac_po_data_dt a ,
+		  		(select max(stac_ymd) maxDate
+		  			from data.stac_po_data_dt
+		  			where 1=1 AND STAC_CD = 'PO_STT_DT_003' ) b
+		 WHERE 1=1
+		   AND stac_ymd = b.maxDate
+		   AND STAC_CD = 'PO_STT_DT_003'
+		  ORDER BY STAC_SE asc;
+	</select>
+</mapper>

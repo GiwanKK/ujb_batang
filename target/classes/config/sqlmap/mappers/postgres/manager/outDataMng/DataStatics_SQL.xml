@@ -1,0 +1,537 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+ * 인구분석 > 서비스 인구 통계 데이터 SQL
+ * @author 신용삼
+ * @since 2019. 07. 08.
+ * @version 1.0
+ * @see
+ *
+ * <pre>
+ * << 개정이력(Modification Information) >>
+ *
+ *  수정일			수정자			수정내용
+ *  ==========    	==========		========================================
+ *  2019.07.08.   	신용삼          최초 생성
+
+ -->
+<mapper namespace="ServicePoplStatsDAO">
+
+
+	<!-- 통계 유형에 따라 이전 데이터 삭제하기 -->
+	<delete id="deleteAnalysisData" parameterType="map">
+	<!-- 서버에서 세팅되어 전달하는 값입니다. -->
+		DELETE FROM ${staticTable}
+		 WHERE stac_cd = #{analysisCode}
+		   AND stac_ymd = REPLACE(#{targetMonth}, '-', '')
+				
+	</delete>
+	
+
+	<!-- 마트 테이블 데이터 만들기 : 성연령별 유동인구(mart.pdt_po_sexd_age_flow) -->
+	<update id="createGenderAgePop" parameterType="map">
+	<![CDATA[
+		insert into mart.pdt_po_sexd_age_flow
+			select crtr_ym as crtr_ymy, hcode as dong_cd, dong_nm,
+			        case when a.idx = 1 then 'm_000'
+			        when a.idx = 2 then 'm_010' when a.idx = 3 then 'm_020'
+			        when a.idx = 4 then 'm_030' when a.idx = 5 then 'm_040'
+			        when a.idx = 6 then 'm_050' when a.idx = 7 then 'm_060'
+			        when a.idx = 8 then 'm_070' when a.idx = 9 then 'f_000'
+			        when a.idx = 10 then 'f_010' when a.idx = 11 then 'f_020'
+			        when a.idx = 12 then 'f_030' when a.idx = 13 then 'f_040'
+			        when a.idx = 14 then 'f_050' when a.idx = 15 then 'f_060'
+			        when a.idx = 16 then 'f_070'
+			        end as sexd_age_info,
+			        case when a.idx = 1 then q.m_000
+			        when a.idx = 2 then q.m_010  when a.idx = 3 then q.m_020
+			        when a.idx = 4 then q.m_030  when a.idx = 5 then q.m_040
+			        when a.idx = 6 then q.m_050  when a.idx = 7 then q.m_060
+			        when a.idx = 8 then q.m_070  when a.idx = 9 then q.f_000
+			        when a.idx = 10 then q.f_010 when a.idx = 11 then q.f_020
+			        when a.idx = 12 then q.f_030  when a.idx = 13 then q.f_040
+			        when a.idx = 14 then q.f_050  when a.idx = 15 then q.f_060
+			        when a.idx = 16 then q.f_070
+			        end as flow_nope
+			from (select left(std_ymd,6) as crtr_ym, hcode, dong_nm,
+			        round(avg(m00),0) as m_000,
+			        round(avg(m10) + avg(m15),0) as m_010,
+			        round(avg(m20) + avg(m25),0) as m_020,
+			        round(avg(m30) + avg(m35),0) as m_030,
+			        round(avg(m40) + avg(m45),0) as m_040,
+			        round(avg(m50) + avg(m55),0) as m_050,
+			        round(avg(m60) + avg(m65),0) as m_060,
+			        round(avg(m70),0) as m_070,
+			        round(avg(f00),0) as f_000,
+			        round(avg(f10) + avg(f15),0) as f_010,
+			        round(avg(f20) + avg(f25),0) as f_020,
+			        round(avg(f30) + avg(f35),0) as f_030,
+			        round(avg(f40) + avg(f45),0) as f_040,
+			        round(avg(f50) + avg(f55),0) as f_050,
+			        round(avg(f60) + avg(f65),0) as f_060,
+			        round(avg(f70),0) as f_070
+			        from (
+			            select std_ymd ,a.hcode ||'00' hcode, b.dong_nm, sum(m00) m00,sum(m10) m10,sum(m15) m15,sum(m20) m20,sum(m25) m25,sum(m30) m30,sum(m35) m35,sum(m40) m40,sum(m45) m45,sum(m50) m50,sum(m55) m55,sum(m60) m60,sum(m65) m65,sum(m70) m70,sum(f00) f00,sum(f10) f10,sum(f15) f15,sum(f20) f20,sum(f25) f25,sum(f30) f30,sum(f35) f35,sum(f40) f40,sum(f45) f45,sum(f50) f50,sum(f55) f55,sum(f60) f60,sum(f65) f65,sum(f70) f70
+			            from data.iff_agender_50cell a, cmm_ujb_dong_nm b 
+			                     where a.hcode ||'00' = b.dong_cd 
+			                     and left(a.std_ymd,6) = REPLACE(#{targetMonth}, '-', '') -- 기준연월 입력
+			                     group by std_ymd ,a.hcode, b.dong_nm
+			            union
+			            select std_ymd, '4115000000' hcode, '의정부시' dong_nm, sum(m00) m00,sum(m10) m10,sum(m15) m15,sum(m20) m20,sum(m25) m25,sum(m30) m30,sum(m35) m35,sum(m40) m40,sum(m45) m45,sum(m50) m50,sum(m55) m55,sum(m60) m60,sum(m65) m65,sum(m70) m70,sum(f00) f00,sum(f10) f10,sum(f15) f15,sum(f20) f20,sum(f25) f25,sum(f30) f30,sum(f35) f35,sum(f40) f40,sum(f45) f45,sum(f50) f50,sum(f55) f55,sum(f60) f60,sum(f65) f65,sum(f70) f70
+			            from data.iff_agender_50cell a
+			                     where left(a.std_ymd,6) = REPLACE(#{targetMonth}, '-', '') -- 기준연월 입력
+			                     group by std_ymd
+			            ) a1
+			        group by left(std_ymd,6), hcode, dong_nm
+			    ) q
+			cross join(select 1 as idx
+			            union all select 2 as idx
+			            union all select 3 as idx
+			            union all select 4 as idx
+			            union all select 5 as idx
+			            union all select 6 as idx
+			            union all select 7 as idx
+			            union all select 8 as idx
+			            union all select 9 as idx
+			            union all select 10 as idx
+			            union all select 11 as idx
+			            union all select 12 as idx
+			            union all select 13 as idx
+			            union all select 14 as idx
+			            union all select 15 as idx
+			            union all select 16 as idx
+			            ) as a
+			order by crtr_ym desc,dong_cd, sexd_age_info;
+
+	]]>
+	</update>
+	
+	
+	
+	<!-- 집계 테이블 데이터 만들기 : 성연령별 유동인구 스택 업데이트 -->	
+	<update id="createGenderAgePopStatic" parameterType="map">
+	<![CDATA[  
+		insert into data.stac_po_data(stac_cd, stac_dong_cd, stac_ymd, atrb_01, atrb_02, stac_se)
+		select 'PO_FLO_002' as stac_cd,
+		        dong_cd as stac_dong_cd,
+		        crtr_ym,
+		        sum(case when sexd_age_info like 'm%' then flow_nope end) as atrb_01,
+		        sum(case when sexd_age_info like 'f%' then flow_nope end) as atrb_02,
+		        right(sexd_age_info,3) as stac_se
+		from mart.pdt_po_sexd_age_flow
+		where crtr_ym = REPLACE(#{targetMonth}, '-', '')
+		group by stac_cd, stac_dong_cd, crtr_ym, stac_se
+		order by crtr_ym, stac_se;
+	]]>
+	</update>
+	
+	<!-- 마트 테이블 만들기 : 행정동별 유동인구 테이블 생성 -->
+	<update id="createAdmFlowPop" parameterType="map">
+	<![CDATA[  
+		insert into mart.pdt_po_dong_flow
+		   select a.dong_cd::char(10)
+		   , a.crtr_ym::char(6)
+		   , a.flow_nope::numeric(10)
+		   , b.geom
+		     from
+				   (
+				   select hcode||'00' as dong_cd
+				      , substring(std_ymd, 1, 6) as crtr_ym
+				      , round(sum(time_00+time_01+time_02+time_03+time_04+
+				         time_05+time_06+time_07+time_08+time_09+
+				         time_10+time_11+time_12+time_13+time_14+
+				         time_15+time_16+time_17+time_18+time_19+
+				         time_20+time_21+time_22+time_23)/24, 4) as flow_nope
+				   from data.iff_hourly_50cell
+				   where left(std_ymd, 6) >= REPLACE(#{targetMonth}, '-', '')
+				   group by hcode, substring(std_ymd, 1, 6)
+				   ) a
+			left join 
+				   (
+				   select dong_cd, geom
+				   from cmm_dong_bndr
+				   ) b
+			   on a.dong_cd = b.dong_cd
+		   order by dong_cd, crtr_ym
+		;
+	]]>		
+	</update>
+	
+	
+	
+	<!-- 마트 테이블 만들기 : 요일별 유동인구 -->
+	<update id="createDayFlowPop" parameterType="map">
+	<![CDATA[  
+		insert into mart.pdt_po_ddwk_flow
+			select crtr_ym, a5.dong_cd, b.dong_nm ,tm as crtr_hr,
+			        max(case when ddwk = '0' then pop end) as sun_nope,
+			        max(case when ddwk = '1' then pop end) as mon_nope,
+			        max(case when ddwk = '2' then pop end) as tue_nope,
+			        max(case when ddwk = '3' then pop end) as wed_nope,
+			        max(case when ddwk = '4' then pop end) as thu_nope,
+			        max(case when ddwk = '5' then pop end) as fri_nope,
+			        max(case when ddwk = '6' then pop end) as sat_nope
+			from (
+			    select left(std_ymd,6) as crtr_ym, hcode||'00' as dong_cd, case when dow = '7' then '0' else dow end ddwk, tm, round(avg(pop),0) pop
+			    from (
+			        select std_ymd, hcode, extract(isodow from std_ymd::date) as dow, tm, round(sum(val),0) as pop 
+			        from (                     
+			            select hcode, std_ymd,
+			                    case when a.idx = 0 then '00'
+			                    when a.idx = 1 then '01' when a.idx = 2 then '02'
+			                    when a.idx = 3 then '03' when a.idx = 4 then '04'
+			                    when a.idx = 5 then '05' when a.idx = 6 then '06'
+			                    when a.idx = 7 then '07' when a.idx = 8 then '08'
+			                    when a.idx = 9 then '09' when a.idx = 10 then '10'
+			                    when a.idx = 11 then '11' when a.idx = 12 then '12'
+			                    when a.idx = 13 then '13' when a.idx = 14 then '14'
+			                    when a.idx = 15 then '15' when a.idx = 16 then '16'
+			                    when a.idx = 17 then '17' when a.idx = 18 then '18'
+			                    when a.idx = 19 then '19' when a.idx = 20 then '20'
+			                    when a.idx = 21 then '21' when a.idx = 22 then '22'
+			                    when a.idx = 23 then '23' end as tm,
+			                    case when a.idx = 0 then time_00
+			                    when a.idx = 1 then time_01 when a.idx = 2 then time_02
+			                    when a.idx = 3 then time_03 when a.idx = 4 then time_04
+			                    when a.idx = 5 then time_05 when a.idx = 6 then time_06
+			                    when a.idx = 7 then time_07 when a.idx = 8 then time_08
+			                    when a.idx = 9 then time_09 when a.idx = 10 then time_10
+			                    when a.idx = 11 then time_11 when a.idx = 12 then time_12
+			                    when a.idx = 13 then time_13 when a.idx = 14 then time_14
+			                    when a.idx = 15 then time_15 when a.idx = 16 then time_16
+			                    when a.idx = 17 then time_17 when a.idx = 18 then time_18
+			                    when a.idx = 19 then time_19 when a.idx = 20 then time_20
+			                    when a.idx = 21 then time_21 when a.idx = 22 then time_22
+			                    when a.idx = 23 then time_23 end as val
+			            from (
+			                select hcode, std_ymd,
+			                        sum(time_00) time_00,sum(time_01) time_01,sum(time_02) time_02,sum(time_03) time_03,sum(time_04) time_04,
+			                        sum(time_05) time_05,sum(time_06) time_06,sum(time_07) time_07,sum(time_08) time_08,sum(time_09) time_09,
+			                        sum(time_10) time_10,sum(time_11) time_11,sum(time_12) time_12,sum(time_13) time_13,sum(time_14) time_14,
+			                        sum(time_15) time_15,sum(time_16) time_16,sum(time_17) time_17,sum(time_18) time_18,sum(time_19) time_19,
+			                        sum(time_20) time_20,sum(time_21) time_21,sum(time_22) time_22,sum(time_23) time_23
+			                from data.iff_hourly_50cell
+			                where left(std_ymd,6) =REPLACE(#{targetMonth}, '-', '')
+			                group by hcode, std_ymd
+			                union
+			                select '41150000' hcode, std_ymd,
+			                        sum(time_00) time_00,sum(time_01) time_01,sum(time_02) time_02,sum(time_03) time_03,sum(time_04) time_04,
+			                        sum(time_05) time_05,sum(time_06) time_06,sum(time_07) time_07,sum(time_08) time_08,sum(time_09) time_09,
+			                        sum(time_10) time_10,sum(time_11) time_11,sum(time_12) time_12,sum(time_13) time_13,sum(time_14) time_14,
+			                        sum(time_15) time_15,sum(time_16) time_16,sum(time_17) time_17,sum(time_18) time_18,sum(time_19) time_19,
+			                        sum(time_20) time_20,sum(time_21) time_21,sum(time_22) time_22,sum(time_23) time_23
+			                from data.iff_hourly_50cell
+			                where left(std_ymd,6) = REPLACE(#{targetMonth}, '-', '')
+			                group by std_ymd
+			                ) a1
+			            cross join(select 0 as idx
+			                        union all select 1 as idx
+			                        union all select 2 as idx
+			                        union all select 3 as idx
+			                        union all select 4 as idx
+			                        union all select 5 as idx
+			                        union all select 6 as idx
+			                        union all select 7 as idx
+			                        union all select 8 as idx
+			                        union all select 9 as idx
+			                        union all select 10 as idx
+			                        union all select 11 as idx
+			                        union all select 12 as idx
+			                        union all select 13 as idx
+			                        union all select 14 as idx
+			                        union all select 15 as idx
+			                        union all select 16 as idx
+			                        union all select 17 as idx
+			                        union all select 18 as idx
+			                        union all select 19 as idx
+			                        union all select 20 as idx
+			                        union all select 21 as idx
+			                        union all select 22 as idx
+			                        union all select 23 as idx
+			                        ) as a
+			            ) a3
+			        group by hcode, std_ymd, tm
+			        order by std_ymd, hcode, tm
+			        ) a4
+			    group by left(std_ymd,6), hcode, dow, tm
+			    order by left(std_ymd,6), hcode, dow, tm
+			    ) a5, cmm_ujb_dong_nm b
+			where a5.dong_cd = b.dong_cd
+			group by crtr_ym, a5.dong_cd, b.dong_nm, tm
+			order by crtr_ym, a5.dong_cd, tm;
+	]]>		
+	</update>
+	
+	
+	
+	<!-- 통계 테이블 만들기 : 요일별 유동인구 스택 업데이트 -->
+	<update id="createDayFlowPopStatic" parameterType="map">
+	<![CDATA[
+		insert into data.stac_po_data (stac_cd, stac_dong_cd, stac_ymd, atrb_01,atrb_02,atrb_03,atrb_04,atrb_05,atrb_06,atrb_07,stac_se)
+			select 'PO_FLO_001' as stac_cd,
+			        dong_cd as stac_dong_cd,
+			        crtr_ym as stac_ymd,
+			        sun_nope, mon_nope, tue_nope, wed_nope, thu_nope, fri_nope, sat_nope,
+			        crtr_hr as stac_se
+			from mart.pdt_po_ddwk_flow
+			where crtr_ym = REPLACE(#{targetMonth}, '-', '')
+			order by crtr_ym, dong_cd, crtr_hr;
+			
+	]]>		
+	</update>
+	
+	
+	
+	
+	
+	<!-- 마트 테이블 만들기 : 거주지별 생활인구/서비스인구(mart.pdt_po_resi_lvng) -->
+	<update id="createResiServicePop" parameterType="map">
+	<![CDATA[ 
+		insert into mart.pdt_po_resi_lvng
+			select a3.crtr_ym, a3.lvng_dong_cd||'00' lvng_dong_cd, a3.resi_sgg_cd, b1.dong_nm as lvng_dong_nm, a3.resi_sgg_nm, 
+			         a3.tot_pop as lvng_nope, pcnt as lvng_remp
+			from(
+			select a2.crtr_ym, a2.lvng_dong_cd, a2.resi_sgg_cd, b.sgg_nm as resi_sgg_nm, a2.tot_pop,
+			        round(a2.tot_pop*100/sum(a2.tot_pop) over (partition by crtr_ym, lvng_dong_cd), 2) pcnt, row_number() over(partition by a2.lvng_dong_cd, a2.crtr_ym order by tot_pop desc) sn
+			    from (
+			        select left(std_ymd,6) as crtr_ym, hcode as lvng_dong_cd, inflow_cd as resi_sgg_cd, round(avg(tot_pop),0) as tot_pop
+			        from (
+			            select std_ymd, "time", hcode, inflow_cd, round(sum(h_pop)+sum(w_pop)+sum(v_pop),1) as tot_pop
+			            from data.iff_time a
+			            where a.std_ym = REPLACE(#{targetMonth}, '-', '')
+			            group by std_ymd, "time", hcode, inflow_cd
+			            union
+			            select std_ymd, "time", '41150000' as hcode, inflow_cd, round(sum(h_pop)+sum(w_pop)+sum(v_pop),1) as tot_pop
+			            from data.iff_time a
+			            where a.std_ym = REPLACE(#{targetMonth}, '-', '')
+			            group by std_ymd, "time", inflow_cd
+			            ) a1
+			        group by left(std_ymd,6), hcode, inflow_cd
+			        ) a2, cmm_sgg_nm b
+			where a2.resi_sgg_cd = b.sgg_cd
+			) a3, cmm_ujb_dong_nm b1
+			where a3.lvng_dong_cd||'00' = b1.dong_cd
+			and a3.resi_sgg_cd != '41150'
+			and sn < 12
+			order by crtr_ym desc, lvng_dong_cd, tot_pop desc;
+	]]>		
+	</update>
+	
+	
+	<!-- 통계 테이블 만들기 : 거주지별 생활인구/서비스인구 스택 업데이트 -->
+	<update id="createResiServicePopStatic" parameterType="map">
+	<![CDATA[  
+		insert into data.stac_po_data (stac_cd, stac_dong_cd, stac_ymd, atrb_01, atrb_02, stac_se)
+			select 'PO_FLO_003' as stac_cd,
+			    lvng_dong_cd,
+			    crtr_ym,
+			    lvng_nope,
+			    lvng_remp,
+			    resi_sgg_nm    
+			from mart.pdt_po_resi_lvng
+			where crtr_ym = REPLACE(#{targetMonth}, '-', '')
+			order by crtr_ym desc, lvng_dong_cd, lvng_remp desc;
+	]]>		
+	</update>
+	
+	<!-- 마트 테이블 만들기 : 성연령별 업종별 카드매출 현황(mart.bda_sexd_age_toi_sls_sttu) -->
+	<update id="createGenderAgeSortSale" parameterType="map">
+	<![CDATA[
+		insert into mart.bda_sexd_age_toi_sls_sttu
+			select *, sum(use_amt) over(partition by crtr_ym, toi_lcla_nm) as toi_lcla_tot_amt
+			from (
+			    select crtr_ym, toi_lcla_nm ,age_cd ||'_'|| sexd_se as sexd_age_cd, sum(use_amt) use_amt
+			    from (
+			        select a1.*, 
+			        case when age_cd_1 = '010' or age_cd_1 = '015' then '010'
+			             when  age_cd_1 = '020' or age_cd_1 = '025' then '020'
+			             when  age_cd_1 = '030' or age_cd_1 = '035' then '030'
+			             when  age_cd_1 = '040' or age_cd_1 = '045' then '040'
+			             when  age_cd_1 = '050' or age_cd_1 = '055' then '050'
+			             when  age_cd_1 = '060' or age_cd_1 = '065' then '060'
+			             when  age_cd_1 = '070' or age_cd_1 = '075' then '070' end age_cd,
+			        case when sexd_cd = '1' then 'm' else 'f' end sexd_se                                 
+			        from (
+			            select a.*, case when age = '75대 이상' then '075' else '0'||age end as age_cd_1
+			            from data.ifc_sexd_age_sls a
+						where crtr_ym = REPLACE(#{targetMonth}, '-', '')
+			            ) a1
+			        ) a2
+			    group by crtr_ym, toi_lcla_nm, sexd_age_cd
+			    ) a3
+			order by crtr_ym desc, toi_lcla_nm, sexd_age_cd
+	
+	]]>		
+	</update>
+	
+	
+	<!-- 통계 테이블 만들기 : 성연령별 업종별 카드매출 현황 스택 업데이트 -->	
+	<update id="createGenderAgeSortSaleStatic" parameterType="map">
+	<![CDATA[  
+		insert into data.stac_bd_data(stac_cd, stac_dong_cd, stac_ymd, atrb_01, atrb_02, stac_se, stac_tp)
+			select 'BD_SAL_001' as stac_cd,
+			        '4115000000' as stac_dong_cd,
+			        crtr_ym,
+			        use_amt,
+			        toi_lcla_tot_amt,
+			        sexd_age_cd,
+			        toi_lcla_nm
+			from mart.bda_sexd_age_toi_sls_sttu
+			where crtr_ym = REPLACE(#{targetMonth}, '-', '')
+		
+	]]>
+	</update>
+	
+	
+	<!-- 집계 테이블 만들기 : 매출 인구 > 성남시 총 매출 분석 : 연령대별 매출 현황-->
+	<update id="createSalesSIGAge" parameterType="map">
+	<![CDATA[
+		insert into mart.bda_dong_sls
+			select a1.crtr_ym, a1.dong_cd, b1.dong_nm, sum(use_amt) use_amt
+			     from (
+			            select a.crtr_ym, a.block_cd, b.dong_cd, use_amt
+			            from data.ifc_sexd_age_sls a, cmm_card_blk b
+			            where a.block_cd = b.blk_cd 
+			            ) a1, cmm_ujb_dong_nm b1
+			where a1.dong_cd = b1.dong_cd
+			and crtr_ym = REPLACE(#{targetMonth}, '-', '')
+			group by crtr_ym, a1.dong_cd, b1.dong_nm
+			order by crtr_ym desc, dong_cd;
+			
+	]]>
+	</update>
+	
+	
+	<!-- 마트 테이블 만들기 : 행정동별 카드매출 현황(mart.bda_dong_sls) -->
+	<update id="createAdmdCardSale" parameterType="map">
+	<![CDATA[
+		WITH data_list AS
+		(
+			SELECT std_ym, cat_biz, SUM(sum) AS total_price, 'I' AS data_flag
+			  FROM dsu_po_card_sig_day_indv
+			 WHERE 1=1
+			   AND std_ym = REPLACE(#{targetMonth}, '-', '')
+			 GROUP BY std_ym, cat_biz
+			 UNION ALL
+			SELECT std_ym, cat_biz, SUM(sum) AS total_price, 'C' AS data_flag
+			  FROM dsu_po_card_sig_day_co
+			 WHERE 1=1
+			   AND std_ym = REPLACE(#{targetMonth}, '-', '')
+			 GROUP BY std_ym, cat_biz
+		)
+
+		INSERT INTO dsu_cmm_stats
+			(analysis_code, analysis_hcode, analysis_date, analysis_flag, attribute01, attribute02)
+		
+		SELECT 'SALES_SIG_BIZ' AS analysis_code,
+		       '' AS  analysis_hcode,
+		       T.std_ym AS analysis_date,
+		       T.cat_biz AS analysis_flag,
+		       T.total_indv AS attribute01,
+		       T.total_cop AS attribute02
+		FROM
+			(
+			SELECT std_ym, cat_biz,
+			       SUM(CASE WHEN data_flag = 'I' then total_price end) AS total_indv,
+			       SUM(CASE WHEN data_flag = 'C' then total_price end) AS total_cop
+			  FROM data_list
+			 WHERE 1=1
+			 GROUP BY std_ym, cat_biz
+			) T 
+	]]>
+	</update>
+	
+	
+	<!-- 통계 테이블 만들기 : 행정동별 카드매출 현황 스택 업데이트  -->
+	<update id="createAdmdCardSaleStatic" parameterType="map">
+	<![CDATA[
+		insert into data.stac_bd_data(stac_cd, stac_dong_cd, stac_ymd, atrb_01)
+			select 'BD_SAL_002' as stac_cd,
+			        dong_cd,
+			        crtr_ym,
+			        use_amt
+			from mart.bda_dong_sls
+			where crtr_ym = REPLACE(#{targetMonth}, '-', '')
+	
+	]]>
+	</update>
+	
+	
+	<!-- 마트 테이블 만들기 : 요일별 시간대별 카드매출 현황(mart.bda_ddwk_sls_sttu)  -->
+	<update id="createDayTimeCardSale" parameterType="map">
+	<![CDATA[  
+		insert into mart.bda_ddwk_sls_sttu
+			select crtr_ym, crtr_hr,
+			        max(case when dow = '0' then use_amt end) as sun_amt,
+			        max(case when dow = '1' then use_amt end) as mon_amt,
+			        max(case when dow = '2' then use_amt end) as tue_amt,
+			        max(case when dow = '3' then use_amt end) as wed_amt,
+			        max(case when dow = '4' then use_amt end) as thu_amt,
+			        max(case when dow = '5' then use_amt end) as fri_amt,
+			        max(case when dow = '6' then use_amt end) as sat_amt
+			from (
+			    select crtr_ym, hr as crtr_hr, dow, sum(use_amt) use_amt
+			    from (
+			        select a.crtr_ym, a.hr,extract(dow from crtr_ymd::date) as dow, a.use_amt
+			        from data.ifc_hr_sls a
+					where crtr_ym = REPLACE(#{targetMonth}, '-', '')
+			    ) a1
+			    group by crtr_ym, hr, dow
+			    ) a2
+			group by crtr_ym, crtr_hr
+			order by crtr_ym desc, crtr_hr;
+					
+	]]>
+	</update>
+	
+	
+	<!-- 통계 테이블 만들기 : 요일별 시간대별 카드매출 현황 스택 업데이트 -->
+	<update id="createDayTimeCardSaleStatic" parameterType="map">
+	<![CDATA[  
+		insert into data.stac_bd_data(stac_cd, stac_dong_cd, stac_ymd, atrb_01, atrb_02,atrb_03,atrb_04,atrb_05,atrb_06,atrb_07, stac_se)
+			select 'BD_SAL_003' as stac_cd,
+			        '4115000000' as stac_dong_cd,
+			        crtr_ym,
+			        sun_amt,mon_amt,tue_amt,wed_amt,thu_amt,fri_amt,sat_amt,
+			        crtr_hr
+			from mart.bda_ddwk_sls_sttu
+			where crtr_ym = REPLACE(#{targetMonth}, '-', '')
+	]]>		
+	</update>
+	
+	
+	
+	
+	
+	<!-- 마트 테이블 만들기 : 월별 카드매출 현황(mart.bda_mm_sls_sttu) -->
+	<update id="createMonthCardSale" parameterType="map">
+	<![CDATA[
+		insert into mart.bda_mm_sls_sttu
+			select crtr_ym, sum(use_amt) use_amt
+			from data.ifc_hr_sls a
+			where crtr_ym = REPLACE(#{targetMonth}, '-', '')
+			group by crtr_ym
+			order by crtr_ym desc;
+				
+	]]>		
+	</update>
+	
+	
+	
+	<!-- 통계 테이블 만들기 : 월별 카드매출 현황 스택 업데이트 -->
+	<update id="createMonthCardSaleStatic" parameterType="map">
+	<![CDATA[
+		insert into data.stac_bd_data(stac_cd, stac_dong_cd, stac_ymd, atrb_01);;
+		select 'BD_SAL_004' as stac_cd,
+		        '4115000000' as stac_dong_cd,
+		        crtr_ym, use_amt
+		from mart.bda_mm_sls_sttu
+		where crtr_ym = REPLACE(#{targetMonth}, '-', '')
+		;
+
+	]]>		
+	</update>
+	
+	
+
+</mapper>

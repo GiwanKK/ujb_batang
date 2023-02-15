@@ -1,0 +1,71 @@
+
+
+
+$(function(){
+/*for (var i = 0; i < cctvList.length; i++) {*/
+					//var oneData = cctvList[i];
+					//var coordi = [Number(oneData['coordx']), Number(oneData['coordy'])];
+					var features = [];
+					var coordi = [Number("127.0521159"), Number("37.69209726")];
+					var oneFeature = {};
+					oneFeature.type = 'Feature';
+					oneFeature.geometry = {
+							'type' : 'Point'
+						  , 'coordinates' : coordi};
+					oneFeature.properties = {
+							'cctvurl' : "blob:https://www.ui4u.go.kr/96f1ee68-5a21-4fa2-b664-6dfab9ce4f2a"
+						  , 'cctvname' : "테스트"
+					  	  , 'coordx' : "127.0521159"
+						  , 'coordy' : "37.69209726"
+					}
+					features.push(oneFeature);
+				//}
+				var cctvPointData = {
+						'type' : 'FeatureCollection'
+					  , 'features': features
+				};
+				fn_setCCTVLayer11(cctvPointData)
+				
+function fn_setCCTVLayer11(cctvPointData) {
+					console.log("tetest55555555 : " , cctvPointData)
+		if(map.hasImage('cctvImg')) {
+			map.removeImage('cctvImg');
+		}
+		if(map.getLayer('cctvLayer')) {
+			map.removeLayer('cctvLayer');
+		}
+		if(map.getSource('cctvLayer')) {
+			map.removeSource('cctvLayer');
+		}
+		/////////////////////////////////
+		map.loadImage('/dist/images/communication/cctvImg.png', function(error, image) { // ES5 equivalent
+			if (error) console.log("error : " , error);
+			console.log("tetest2222")
+			// Add the image to the map style.
+			map.addImage('cctvImg', image);
+			map.addSource('cctvLayer', {
+				'type' : 'geojson',
+				'data' : cctvPointData
+			});
+			map.addLayer({
+				'id': 'cctvLayer',
+				'type': 'symbol',
+				'source': 'cctvLayer', 
+				'layout': {
+					'icon-image': 'cctvImg',
+					'icon-size': 0.2
+					}
+			});
+			map.on('click', 'cctvLayer', function(e) { // ES5 equivalent
+				layerOpenClose(true);
+				var coordx = e.features[0].properties['coordx'];
+				var coordy = e.features[0].properties['coordy'];
+				$("#cctvVideo").attr("src", "blob:https://www.ui4u.go.kr/96f1ee68-5a21-4fa2-b664-6dfab9ce4f2a");
+				$("#cctvName").text("테스트");
+				document.getElementById('cctvVideo').play();
+				});
+
+		});
+	
+	}
+})

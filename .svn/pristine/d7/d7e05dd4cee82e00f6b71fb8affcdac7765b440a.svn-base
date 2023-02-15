@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+ * 관리자 > 주요사업 관리
+ * @author 김부권
+ * @since 2021. 09. 23.
+ * @version 1.0
+ * @see
+ *
+ * <pre>
+ * << 개정이력(Modification Information) >>
+ *
+ *  수정일			수정자			수정내용
+ *  ==========    	==========		========================================
+ *  2021.09.23.   	김부권          최초 생성
+
+ -->
+<mapper namespace="MainBusinessMngDAO">
+	<!-- 의정부 사업추진현황테이블 insert -->
+	<update id="createBusiStatus" parameterType="map">
+		INSERT INTO data.ifb_pldg_prtn_sttu(mng_no, pldg_area, pldg_busn_nm, prtn_acr_rt, busn_tot_amt, pldg_prtn_dep, data_stdr_de, atch_file_id)
+      	VALUES(#{no}, #{busiName}, #{goalName}, #{rate}::numeric, #{totalCost}::numeric, #{dept}, to_char(now(), 'yyyymmdd'), #{atchFileId})
+      
+	</update>
+	
+	<!-- 의정부 사업추진현황 상세테이블 insert -->
+	<update id="createBusiStatusDetail" parameterType="map">
+		INSERT INTO data.ifb_pldg_prtn_deal(mng_no, pldg_goal, pldg_pd, pldg_ctn, pldg_efct, pldg_budg)
+     	VALUES(#{no}, #{goal}, #{term}, #{contents}, #{effect}, #{subCost})
+	</update>
+	
+	<!-- 의정부 사업추진현황 통계테이블 insert -->
+	<update id="createBusiStatusStatic" parameterType="map">
+		INSERT INTO data.stac_sp_data(stac_cd, stac_dong_cd, stac_ymd, atrb_01, atrb_02, stac_se, stac_tp)
+	      select 
+	           case when regexp_replace(pldg_area, '^.* ', '') = '희망도시' then 'SP_STT_001' 
+	           when regexp_replace(pldg_area, '^.* ', '') = '선진교통도시' then 'SP_STT_002' 
+	           when regexp_replace(pldg_area, '^.* ', '') = '교육선도도시' then 'SP_STT_003' 
+	           when regexp_replace(pldg_area, '^.* ', '') = '복지도시' then 'SP_STT_004'
+	           else 'SP_STT_005' end as name, 
+	           '4115000000',
+	           to_char(data_stdr_de::date, 'yyyymm'),
+	           busn_tot_amt as total,
+	           (prtn_acr_rt*busn_tot_amt)/100 as real,
+	           pldg_busn_nm as name,
+	           MNG_NO as no
+	      FROM data.ifb_pldg_prtn_sttu
+	     WHERE 1=1
+	       AND mng_no = #{no}; 
+	</update>
+	
+	<!-- 의정부 사업추진 첨부파일 정보 가져오기 -->
+	<select id="selectGetFileId" resultType="resultCamelMap">
+		select max(ATCH_FILE_ID) as ATCH_FILE_ID from mng_atch_file_info;
+	</select>
+	
+	
+	<!-- 의정부 사업추진현황테이블 update -->
+	<update id="updateBusiStatus" parameterType="map">
+		UPDATE  data.ifb_pldg_prtn_sttu
+           SET 
+				pldg_area = #{busiName},
+				pldg_busn_nm = #{goalName},
+				prtn_acr_rt = #{rate}::numeric,
+				busn_tot_amt = #{totalCost}::numeric,
+				pldg_prtn_dep = #{dept}
+				<if test="atchFileId != '' and atchFileId != null">  
+				, atch_file_id = #{atchFileId}
+				</if>
+          WHERE 1=1
+            AND mng_no = #{no}
+	</update>
+	
+	<!-- 의정부 사업추진현황 상세테이블 update -->
+	<update id="updateBusiStatusDetail" parameterType="map">
+		UPDATE data.ifb_pldg_prtn_deal
+	       SET 
+	           pldg_goal = #{subCost},
+	           pldg_pd = #{contents},
+	           pldg_ctn = #{effect},
+	           pldg_efct = #{goal},
+	           pldg_budg = #{term}
+	     WHERE 1=1
+	       AND mng_no = #{no}
+	</update>
+	
+	<!-- 의정부 사업추진현황 통계테이블 update -->
+	<update id="updateBusiStatusStatic" parameterType="map">
+		UPDATE data.stac_sp_data
+         SET stac_cd = (select case when regexp_replace(#{busiName}, '^.* ', '') = '희망도시' then 'SP_STT_001' 
+           when regexp_replace(#{busiName}, '^.* ', '') = '선진교통도시' then 'SP_STT_002' 
+           when regexp_replace(#{busiName}, '^.* ', '') = '교육선도도시' then 'SP_STT_003' 
+           when regexp_replace(#{busiName}, '^.* ', '') = '복지도시' then 'SP_STT_004'
+           else 'SP_STT_005' end as name),
+             stac_ymd = to_char(now(), 'yyyymm'),
+             atrb_01 = #{totalCost}::numeric,
+             atrb_02 = #{rate}::numeric,
+             stac_se = #{goalName}
+       WHERE 1=1
+         AND stac_tp = #{no}
+	</update>
+	
+	<!-- 파일정보 데이터 삭제하기 -->
+	<delete id="deleteFileDetail" parameterType="map">
+		   DELETE FROM mng_atch_file_info
+			WHERE
+				ATCH_FILE_ID = #{atchFileId}
+	</delete>
+	
+	<!-- 사업현황 테이블 데이터 삭제하기 -->
+	<delete id="deleteBusiContents" parameterType="map">
+		DELETE FROM data.ifb_pldg_prtn_sttu
+		 WHERE 1=1
+		   and mng_no = #{no}
+	</delete>
+	
+	<!-- 사업현황 상세 테이블 데이터 삭제하기 -->
+	<delete id="deleteBusiDetailContents" parameterType="map">
+		DELETE FROM data.ifb_pldg_prtn_deal
+		 WHERE 1=1
+		   and mng_no = #{no}
+	</delete>
+	
+	<!-- 사업현황 통계테이블 데이터 삭제하기 -->
+	<delete id="deleteBusiStatics" parameterType="map">
+		DELETE FROM data.stac_sp_data
+		 WHERE 1=1
+		   and stac_tp = #{no}
+	</delete>
+	
+	<!-- 추진 사업현황 다음등록 no가져오기 -->
+	<select id="selectBusiNo" resultType="resultCamelMap">
+	  select max(SPLIT_PART(mng_no, '-',1)::int  )+1 as no
+        from data.ifb_pldg_prtn_sttu 
+	</select>
+	
+	<!-- 추진 사업리스트 조회하기 -->
+	<select id="selectBusiList" resultType="resultCamelMap">
+	  select DISTINCT(regexp_replace(pldg_area, '^.* ', '') ) as name, 
+		       pldg_area  as code
+		  from data.ifb_pldg_prtn_sttu
+		 where 1=1
+		    and PLDG_AREA != '전체'
+	</select>
+	
+	<!-- 사업현황 조회 하기 -->
+	<select id="selectBusiDesc" parameterType="map" resultType="resultCamelMap">
+		select a.MNG_NO as no, 
+			   case when a.PLDG_BUDG is null then '0' else a.PLDG_BUDG end as sub_cost, 
+	           a.PLDG_CTN as contents, 
+	           a.PLDG_EFCT as effect, 
+	           a.PLDG_GOAL as goal,
+	           a.PLDG_PD as term,
+	           b.total_cost,  
+	           b.date as date, 
+	           b.goal_name as goal_name, 
+	           b.dept as dept, 
+	           b.rate as rate,
+	           b.busi_name as busi_name ,
+	           b.origin_name,
+	           b.path,
+	           b.file_name,
+	           b.file_sort 
+	     from data.ifb_pldg_prtn_deal a ,
+	          (select  MNG_NO,
+	          		   b.DATA_STDR_DE as date, 
+			           b.PLDG_BUSN_NM as goal_name, 
+			           b.PLDG_PRTN_DEP as dept, 
+			           b.PRTN_ACR_RT as rate,
+			           b.pldg_area as busi_name ,
+	          		   case when b.BUSN_TOT_AMT is null then 0 else b.BUSN_TOT_AMT end as total_cost,
+	                   c.ORIG_ATCH_FILE_NM  as origin_name,
+			           c.atch_file_strg_path as path,
+			           c.strg_file_nm as file_name,
+			           c.file_extn as file_sort
+	             from data.ifb_pldg_prtn_sttu b 
+					left join 
+	                  mng_atch_file_info c
+	            on c.ATCH_FILE_ID = b.ATCH_FILE_ID 
+	                  ) b 
+	    where a.MNG_NO = b.MNG_NO
+        <if test="busiName != '' and busiName != null">  
+	      and b.busi_name = #{busiName}
+	    </if>
+	    <if test="no != '' and no != null">  
+	      and b.mng_no = #{no}
+	    </if>
+	    <if test="goalName != '' and goalName != null">  
+	      and b.goal_name = #{goalName}
+	    </if>
+	</select>
+	
+	<!-- 사업현황 첨부파일정보 조회 하기 -->
+	<select id="selectBusiFileInfo" parameterType="map" resultType="resultCamelMap">
+		select
+			ATCH_FILE_STRG_PATH || strg_file_nm file_url,
+			orig_atch_file_nm,
+			a.ATCH_FILE_ID
+		from 
+			mng_atch_file_info a,
+			data.ifb_pldg_prtn_sttu b
+		where 1=1
+		and b.MNG_NO = #{no}
+		and a.atch_file_id = b.atch_file_id
+	</select>
+	
+	
+</mapper>

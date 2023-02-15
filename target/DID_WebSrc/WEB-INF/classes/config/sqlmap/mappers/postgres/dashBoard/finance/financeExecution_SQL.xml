@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="FinanceExecutionMapper">
+	
+	<!-- 신속집행 대시보드 검색기간   -->
+	<select id="selectFinExecutionDate" resultType="resultCamelMap">
+		SELECT  to_char(to_date(max(stac_ymd), 'YYYYMM'),'yyyy') as max, to_char(to_date(min(stac_ymd), 'YYYYMM'),'yyyy') as min
+		  FROM data.stac_fn_data
+		 WHERE 1=1
+		   AND (STAC_CD = 'FN_EPE_001')   
+	</select>
+	
+	
+	
+	<!-- 부서별 신속집행 -->
+	<select id="selectFinExecutionDept" parameterType="map" resultType="resultCamelMap">
+		SELECT STAC_SE as name,
+			   case when ATRB_01=0 then 0 else round(ATRB_01/100000000, 2) end ATRB_01, 
+		   	   case when ATRB_02=0 then 0 else round(ATRB_02/100000000, 2) end ATRB_02, 
+		   	   case when ATRB_03=0 then 0 else round(ATRB_03/100000000, 2) end ATRB_03
+		  FROM data.stac_fn_data
+		 WHERE 1=1
+		   AND STAC_CD = 'FN_EPE_001'
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+	 ORDER BY (ATRB_01+ATRB_02) desc limit 25;
+  
+	</select>
+	
+	<!-- 부서별 신속집행 -->
+	<select id="selectFinExecutionSort" parameterType="map" resultType="resultCamelMap">
+		SELECT STAC_SE as name, STAC_TP as code,
+		   	   case when ATRB_01=0 then 0 else round(ATRB_01/100000000, 2) end ATRB_01, 
+		   	   case when ATRB_02=0 then 0 else round(ATRB_02/100000000, 2) end ATRB_02, 
+		   	   case when ATRB_03=0 then 0 else round(ATRB_03/100000000, 2) end ATRB_03
+		  FROM data.stac_fn_data
+		 WHERE 1=1
+		   AND STAC_CD = 'FN_EPE_002'
+     	<if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+	 ORDER BY (ATRB_01+ATRB_02) desc;
+	</select>
+	
+	
+</mapper>

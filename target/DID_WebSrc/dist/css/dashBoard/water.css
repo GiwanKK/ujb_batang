@@ -1,0 +1,26 @@
+@charset "utf-8";
+/* CSS Document */
+
+.water_map {clear:both;display:inline-block;width:100%;height:491px;position:relative}
+.water_grp01 .rm01 {background-color:#3bbdc8}
+.water_grp01 .rm02 {background-color:#3a8db6}
+.water_grp01 .rm03 {background-color:#f5ce7d}
+
+/*탭 small*/
+.stab_box {clear:both;display:inline-block;width:100%;height:32px;text-align:center}
+.stab_all {display:inline-block;min-width:200px;height:32px;margin:0 auto}
+.stab_all .stab_link {display:inline-block;min-width:100px;height:32px;text-align:center;border:1px solid #7c7c7c;color:#c0c0c0;padding:8px 10px 0 10px;cursor:pointer;font-size:14px}
+.stab_all .stab_link.on {border:1px solid #fff;color:#fff;}
+
+.stab_content {display:none;width:100%;height:829px}
+.stab_content.on {display:inline-block}
+.water_grp {width:100%;height:224px}
+
+.chart_ci, .chart_ph, .chart_ntu {display:inline-block;width:100%;height:256px;margin-top:20px}
+
+.water_quality {clear:both;float:left;width:100%;height:290px}
+.wq_box {float:left;width:100%;height:145px;border:1px solid #7c7c7c;}
+.wq_box dt {float:left;width:25%;height:145px;text-align:center;line-height:140%;padding-top:48px}
+.wq_box dd {float:left;width:25%;height:145px;text-align:center;border-left:1px solid #7c7c7c;padding:12px}
+.wq_box dd img {width:84px;height:84px}
+.wq_box dd span.wq_stitle {display:inline-block;min-width:100px;height:26px;font-size:14px;background-color:#1e1e1e;padding:5px 10px 0 10px;border-radius:30px;text-align:center;margin-top:9px}

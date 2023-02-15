@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ComplainStatusMapper">
+	
+	<!-- 민원실 현황 대시보드 검색기간   -->
+	<select id="selectComplainReceiptDate" resultType="resultCamelMap">
+		SELECT  to_char(to_date(max(stac_ymd), 'YYYYMM'),'yyyy-mm') as max, to_char(to_date(min(stac_ymd), 'YYYYMM'),'yyyy-mm') as min
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND (STAC_CD = 'CC_CVP_001' or stac_cd='CC_CVP_002' or stac_cd = 'CC_CVP_003')   
+	</select>
+
+	<!-- 최근 데이터의 시간 조회 -->	
+	<select id="selectComplainLastDate" resultType="resultCamelMap">
+		SELECT to_char(issue_time, 'yyyy.mm.dd HH24:mi:ss') as dateTxt
+		FROM "data".ivt_ticket_reservation_list_tb itrlt 
+		ORDER BY issue_time DESC 
+		LIMIT 1
+	</select>
+	
+	<!-- 민원 접수 현황 -->
+	<select id="selectComplainReceipt" parameterType="map" resultType="resultCamelMap">
+		SELECT CASE WHEN ATRB_01 IS NULL THEN 0 ELSE ATRB_01 END ATRB_01, 
+		       CASE WHEN ATRB_02 IS NULL THEN 0 ELSE ATRB_02 END ATRB_02, 
+		       CASE WHEN ATRB_03 IS NULL THEN 0 ELSE ATRB_03 END ATRB_03, 
+		       CASE WHEN ATRB_04 IS NULL THEN 0 ELSE ATRB_04 END ATRB_04
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND STAC_CD = 'CC_CVP_001'
+	     <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+	</select>
+	
+	<!-- 각동 주민센터 일빈민원접수 현황 -->
+	<select id="selectComplainStatus" parameterType="map" resultType="resultCamelMap">
+		SELECT substr(stac_dong_cd, 1, 8) as stac_dong_cd,  
+		       ATRB_01,
+		       STAC_SE
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND STAC_CD = 'CC_CVP_002'
+	     <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		 ORDER BY ATRB_01 desc;
+	</select>
+	
+	<!-- 시정 뉴스 -->
+	<select id="selectComplainNews" parameterType="map" resultType="resultCamelMap">
+		SELECT distinct case when colc_path = 'naver_news' then '네이버' 
+			   when colc_path = 'ujb_news' then '의정부 뉴스' end as sort,
+		      colc_de as date,
+		       news_sj as title,
+		       news_ctn as contents,
+		       news_url
+		  FROM data.esn_news_data
+		 WHERE 1=1
+		 and colc_de = to_char(current_timestamp + '-1 days','yyyy.mm.dd')
+		 and colc_path = 'naver_news'
+		   ORDER BY colc_de desc
+	</select>
+	
+	<select id="getMaxNewsList" resultType="resultCamelMap">
+		select 
+			distinct case when colc_path = 'naver_news' then '네이버' 
+			   when colc_path = 'ujb_news' then '의정부 뉴스' end as sort,
+			   a.maxDate,
+			colc_de as date,
+			news_sj as title,
+			news_ctn as contents,
+			news_url
+		FROM data.esn_news_data b,
+			(SELECT 
+				TO_CHAR(MAX(colc_de)::timestamp, 'yyyy.mm.dd') maxDate
+			 from data.esn_news_data
+			 where 1=1 
+			 and colc_path = 'naver_news') as a
+		where 1=1
+		and colc_de = a.maxDate
+	</select>
+	
+	<select id="getMaxNewsList1" resultType="resultCamelMap">
+		select 
+			distinct case when colc_path = 'naver_news' then '네이버' 
+			   when colc_path = 'ujb_news' then '의정부 뉴스' end as sort,
+			colc_de as date,
+			news_sj as title,
+			news_ctn as contents,
+			news_url
+		FROM data.esn_news_data b,
+		(SELECT 
+			DATE_TRUNC('WEEK', MAX(colc_de)::timestamp)::DATE as fDate
+			,DATE_TRUNC('WEEK', MAX(colc_de)::timestamp)::DATE + 6 as bDate
+		from data.esn_news_data) a
+		where 1=1
+		and colc_de::date between a.fDate and a.bDate
+		order by date desc
+		limit 50
+		<choose>
+		 		<when test="moreWeek != null and moreWeek != '' ">
+					 OFFSET ${moreWeek}
+				</when>	 
+				<otherwise>
+					OFFSET 0
+				</otherwise>
+	    </choose>
+	</select>
+	
+	<select id="getMaxNewsList2" resultType="resultCamelMap">
+		select 
+			distinct case when colc_path = 'naver_news' then '네이버' 
+			   when colc_path = 'ujb_news' then '의정부 뉴스' end as sort,
+			colc_de as date,
+			news_sj as title,
+			news_ctn as contents,
+			news_url
+		FROM data.esn_news_data b,
+		(SELECT 
+			DATE_TRUNC('month', MAX(colc_de)::timestamp)::DATE as fDate
+			,DATE_TRUNC('month', MAX(colc_de)::timestamp + INTERVAL '1 MONTH - 1 day')::DATE as bDate
+		from data.esn_news_data) a
+		where 1=1
+		and colc_de::date between a.fDate and a.bDate
+		order by date desc
+		limit 50
+		<choose>
+		 		<when test="moreMonth != null and moreMonth != '' ">
+					 OFFSET ${moreMonth}
+				</when>	 
+				<otherwise>
+					OFFSET 0
+				</otherwise>
+	    </choose>
+	</select>
+	
+	<!-- 민원 접수 현황 -->
+	<select id="selectComplainLiveReceipt" resultType="resultCamelMap">
+		SELECT
+			(
+				SELECT
+					case when to_char(now(), 'HH24') >= '18' then 0
+					else wait_cnt end ATRB_01
+				FROM data.ivt_ticket_reservation_list_tb
+				WHERE code = '15'
+					AND group_nm = '여권신청'
+				ORDER BY ticket_seq DESC
+				LIMIT 1
+			), (
+				SELECT
+					case when to_char(now(), 'HH24') >= '18' then 0
+					else wait_cnt end ATRB_02
+				FROM data.ivt_ticket_reservation_list_tb
+				WHERE code = '15'
+					AND group_nm = '여권찾는곳'
+				ORDER BY ticket_seq DESC
+				LIMIT 1
+			),
+			(
+				SELECT
+					case when to_char(now(), 'HH24') >= '18' then 0
+					else wait_cnt end ATRB_03
+				FROM data.ivt_ticket_reservation_list_tb
+				WHERE code = '16'
+				  AND group_nm not like '가족관계등록신고'
+				ORDER BY ticket_seq DESC
+				LIMIT 1
+			), (
+				SELECT
+					case when to_char(now(), 'HH24') >= '18' then 0
+					else wait_cnt end ATRB_04
+				FROM data.ivt_ticket_reservation_list_tb
+				WHERE code = '16'
+				  AND group_nm = '가족관계등록신고'
+				ORDER BY ticket_seq DESC
+				LIMIT 1
+			)
+
+	</select>
+	
+	<!-- 각동 주민센터 일빈민원접수 현황 -->
+	<select id="selectComplainLiveStatus" resultType="resultCamelMap">
+		SELECT
+			LEFT(b.dong_cd, 8) stac_dong_cd,
+			b.dong_nm STAC_SE,
+			wait_cnt ATRB_01
+		FROM (
+			SELECT
+				CASE
+					WHEN code::integer = 1 THEN '가능동'
+					WHEN code::integer = 2 THEN '녹양동'
+					WHEN code::integer = 3 THEN '송산1동'
+					WHEN code::integer = 4 THEN '송산2동'
+					WHEN code::integer = 5 THEN '송산3동'
+					WHEN code::integer = 6 THEN '신곡1동'
+					WHEN code::integer = 7 THEN '신곡2동'
+					WHEN code::integer = 8 THEN '의정부1동'
+					WHEN code::integer = 9 THEN '의정부2동'
+					WHEN code::integer = 10 THEN '자금동'
+					WHEN code::integer = 11 THEN '장암동'
+					WHEN code::integer = 12 THEN '호원1동'
+					WHEN code::integer = 13 THEN '호원2동'
+					WHEN code::integer = 14 THEN '흥선동'
+				END as dong_nm,
+				wait_cnt
+			FROM (
+				SELECT
+					ROW_NUMBER() OVER (PARTITION BY code order BY issue_time desc) as rn,
+					code,
+					wait_cnt,
+					issue_time         
+				FROM data.ivt_ticket_reservation_list_tb
+				WHERE code::int NOT IN (15, 16)
+			) t
+			WHERE rn = 1
+			ORDER BY code
+		) a
+			LEFT JOIN cmm_dong_bndr b ON a.dong_nm = b.dong_nm
+	</select>
+	
+</mapper>

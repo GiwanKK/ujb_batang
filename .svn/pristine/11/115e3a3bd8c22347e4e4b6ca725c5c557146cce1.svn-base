@@ -1,0 +1,39 @@
+@charset "utf-8";
+/* CSS Document */
+
+.business_tip {width:100%;height:30px;font-size:12px;color:#d1d1d1;}
+
+.left_tab {float:left;width:12%;}
+.tab_business {display:none;float:left;width:86.5%;margin-left:1.5%}
+.tab_business.on {display:block}
+
+.left_tab .left_tab_area {clear:both;display:inline-block;width:100%;}
+.left_tab .left_tab_area li.tab_url {display:inline-block;width:100%;height:40px;border-radius:30px;background-color:#3b3b3b;box-shadow:1px 1px 1px 1px #1a1a1a;text-align:center;padding:11px 10px 0 10px;margin-bottom:8px;cursor:pointer}
+.left_tab .left_tab_area .tab_url.on {background-color:#00aeff}
+
+/* .push_list {clear:both;display:inline-block;width:100%;height:510px;overflow-y:auto;padding-top:10px} */
+.push_cont {display:inline-block;width:18.3%;height:196px;border-radius:10px;background:#232323;margin:0 0 22px 20px;position:relative;padding:15px;cursor:pointer}
+.push_cont.on {border:1px solid #00aeff}
+.ico_complete {width:44px;height:62px;position:absolute;top:-10px;left:-10px;background:url(/dist/images/business/ico_complete.png) no-repeat 0 0;font-size:0}
+.cont_box {display:inline-block;width:100%;}
+.cont_box dl {display:inline-block;width:100%;height:102px;margin:15px 0 3px 0}
+.cont_box dl dt {display:inline-block;width:100%;height:30px;line-height:140%;text-align:center;font-size:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cont_box dl dd {display:inline-block;width:100%;text-align:center;font-size:40px;font-weight:600;padding-top:10px}
+.graph_40 {width:100%;height:40px}
+
+.push_desc {width:100%;height:329px;padding-top:25px}
+.desc_state {clear:both;float:left;width:100%;height:309px;border:1px solid #fff}
+.desc_state li {float:left;width:20%;height:309px;border-right:1px solid #fff;padding:20px}
+.desc_state li:last-child {border-right:0 none !important}
+
+.sm_title {float:left;width:100%;height:30px;}
+.sm_area {overflow-y: auto;float:left;width:100%;height:215px;text-align:left;line-height:140%;font-size:20px;margin-top:20px}
+.sm_area img {vertical-align:middle}
+
+/*20210809추가*/
+
+.bar_type {display:inline-block;width:100%;height:12px;background-color:#313131;border-radius:20px;font-size:0}
+
+.bar_txt {width:100%;height:16px;margin-top:7px;text-align:right;}
+
+.push_list {clear:both;display:inline-block;width:100%;min-width:220px;max-height:510px;overflow-y:auto;padding-top:10px}

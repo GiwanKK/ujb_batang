@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+ * 관리자 > Upload 데이터 관리 SQL
+ * @author 신용삼
+ * @since 2019. 07. 08.
+ * @version 1.0
+ * @see
+ *
+ * <pre>
+ * << 개정이력(Modification Information) >>
+ *
+ *  수정일			수정자			수정내용
+ *  ==========    	==========		========================================
+ *  2019.07.08.   	신용삼          최초 생성
+
+ -->
+<mapper namespace="OutDataMngDAO">
+
+
+	<!-- 데이터 유형 목록 조회하기 -->
+	<select id="selectUploadDataList" parameterType="map" resultType="resultCamelMap">
+
+		WITH code_list AS 
+		(
+		SELECT data_tp_id as code_id, data_tp_nm as code_name, tbl_nm as code_desc, '인구' AS gubun_name
+		  FROM mng_ulod_data_list
+		 WHERE split_part(data_tp_id, '_', 1) = 'POPL'
+		   AND use_yn = 'Y'
+		UNION ALL
+		SELECT data_tp_id as code_id, data_tp_nm as code_name, tbl_nm as code_desc, '매출' AS gubun_name
+		  FROM mng_ulod_data_list
+		 WHERE split_part(data_tp_id, '_', 1) = 'SALE'
+		   AND use_yn = 'Y'
+		)
+		SELECT code_id, code_name, code_desc, gubun_name, target_month, atch_file_id, create_start_date, create_end_date,
+		       coalesce(orignl_file_nm, '') AS orignl_file_nm
+		  FROM (
+				SELECT CD.code_id, CD.code_name, CD.code_desc, CD.gubun_name, 
+				       coalesce(UD.aplcn_ym,'') AS target_month,
+				       coalesce(UD.atch_file_id,'') AS atch_file_id, 
+				       to_char(UD.data_crt_bgng_dt::timestamp, 'YYYY-MM-DD HH24:MI:SS') AS create_start_date,
+				       to_char(UD.data_crt_end_dt::timestamp, 'YYYY-MM-DD HH24:MI:SS') AS create_end_date,
+				       (SELECT orig_atch_file_nm FROM mng_atch_file_info WHERE atch_file_id = UD.atch_file_id) AS orignl_file_nm
+				  FROM code_list AS CD LEFT JOIN mng_ulod_data_info AS UD
+				       ON CD.code_id = UD.data_tp_id
+				 ORDER BY CD.code_id
+			) A 
+		  
+		  
+	</select>
+	
+	
+	
+	
+	<!-- 데이터 유형 History 목록 조회하기 -->
+	<select id="selectUploadDataHisList" parameterType="map" resultType="resultCamelMap">
+
+		SELECT 
+	           data_tp_id as code_id, 
+	           aplcn_ym as target_month, 
+	           atch_file_id as atch_file_id, 
+	           prcs_tp_cd as proc_type_cd, 
+	           prcs_resl as proc_desc, 
+	           prcs_resl_msg as result_msg,
+			   to_char(prcs_bgng_dt::timestamp, 'YYYY-MM-DD HH24:MI:SS') AS proc_start_time, 
+			   to_char(prcs_end_dt::timestamp, 'YYYY-MM-DD HH24:MI:SS') AS proc_end_time,
+			   to_char(crt_dt::timestamp, 'YYYY-MM-DD HH24:MI:SS') AS create_date,
+		       (CASE WHEN prcs_tp_cd = 'U' THEN '업로드'
+		             WHEN prcs_tp_cd = 'D' THEN '데이터'
+		             WHEN prcs_tp_cd = 'A' THEN '통계'
+		       END) AS gubun_name
+		  FROM mng_ulod_data_hist
+		 WHERE data_tp_id = #{codeId}
+		 ORDER BY crt_dt DESC, prcs_tp_cd ASC
+		  
+	</select>
+	
+	
+	<!-- 업로드 데이터 정보 저장하기 -->
+	<insert id="insertFileUploadInfo" parameterType="map">
+
+		WITH upload_list AS (
+			UPDATE mng_ulod_data_info AS T
+			   SET atch_file_id 		= #{atchFileId},
+			       aplcn_ym			= #{targetMonth},
+			   	   data_crt_bgng_dt 	= #{createStartDate}::timestamp,
+			   	   data_crt_end_dt 		= #{createEndDate}::timestamp,
+			   	   data_crt_user_id 	= #{loginId}
+			 WHERE data_tp_id = #{codeId}
+			RETURNING T.*
+		)
+		INSERT INTO mng_ulod_data_info
+			(data_tp_id, aplcn_ym, atch_file_id, data_crt_bgng_dt, data_crt_end_dt, data_crt_user_id)
+		SELECT #{codeId}, #{targetMonth}, #{atchFileId}, #{createStartDate}::timestamp, #{createEndDate}::timestamp, #{loginId}
+		WHERE NOT EXISTS (SELECT * FROM upload_list)
+
+	</insert>
+	
+	
+	<!-- 업로드 데이터 History 저장하기 -->
+	<insert id="insertFileUploadHistory" parameterType="map">
+	   INSERT INTO public.mng_ulod_data_hist
+			(gid, data_tp_id, aplcn_ym, atch_file_id, tot_row_cnt, ulod_scs_row_cnt, prcs_tp_cd, prcs_resl, prcs_resl_msg, prcs_bgng_dt, prcs_end_dt, crt_dt, crt_user_id)
+		VALUES
+			(
+              (
+              select 
+			       case when max(gid) is null then 0
+			       else max(gid)+1 end as gid
+			 from mng_ulod_data_hist
+              ), #{codeId}, #{targetMonth}, #{atchFileId}, #{totCnt}::numeric, #{suTotCnt}::numeric, #{procTypeCd}, #{procDesc}, #{resultMsg}, #{procStartTime}::timestamp, #{procEndTime}::timestamp, Now(), #{loginId});
+	
+		
+		
+	</insert>
+	
+	
+	<!-- Upload File 정보 조회하기 -->
+	<select id="selectUpliadFileInfo" parameterType="map" resultType="resultCamelMap">
+	
+		SELECT UD.atch_file_id, 
+		       FD.atch_file_strg_path as file_stre_cours, FD.strg_file_nm as stre_file_nm, FD.orig_atch_file_nm as orignl_file_nm, FD.file_extn as file_extsn
+		  FROM mng_ulod_data_info AS UD INNER JOIN mng_atch_file_info FD
+		       ON UD.atch_file_id = FD.atch_file_id
+		 WHERE UD.atch_file_id = #{atchFileId}
+	
+	</select>
+	
+	
+	<!-- 테이블명 중복 체크 -->
+	<select id="checkDupTableName" parameterType="map" resultType="resultCamelMap">
+
+		SELECT count(tablename) AS table_cnt
+		  FROM pg_tables a
+		 WHERE tablename = replace(#{tableName}, 'data.', '')
+ 
+	</select>
+	
+	<!-- 유입지 인구 테이블 생성 -->
+	<!-- <update id="createTableServiceInfl" parameterType="map">
+	
+		CREATE TABLE ${tableName} ( LIKE dsu_po_svc_infl_201801 including all)
+		
+	</update>  -->
+	
+	<!-- 50셀단위 성연령별 유동인구 임시 테이블 생성-->
+	<update id="createPopGenderAge" parameterType="map">
+		CREATE TABLE data.iff_agender_50cell_if (
+			like data.iff_agender_50cell
+		)
+	</update>
+	
+	<!-- 50셀단위 성연령별 유동인구 테이블 데이터 추가하기 -->
+	<insert id="insertPopGenderAge" parameterType="map">
+	
+		INSERT INTO data.iff_agender_50cell
+		SELECT *
+		FROM data.iff_agender_50cell_if
+	</insert>
+	
+	<!-- 50셀단위 성연령별 유동인구 임시 테이블 삭제-->
+	<delete id="deletePopGenderAge" parameterType="map">
+	
+		DROP TABLE data.iff_agender_50cell_if
+		
+	</delete>
+	
+	<!-- 행정동별 일자별 외국인 생활인구 임시 테이블 생성-->
+	<update id="createPopDongForgService" parameterType="map">
+		CREATE TABLE data.iff_forn_if (
+			like data.iff_forn
+		)
+	</update> 
+	
+	<!-- 행정동별 일자별 외국인 생활인구 테이블 데이터 추가하기 -->
+	<insert id="insertPopDongForgService" parameterType="map">
+	
+		INSERT INTO data.iff_forn
+		SELECT *
+		FROM iff_forn_if
+	</insert>
+	
+	
+	<!-- 행정동별 일자별 외국인 생활인구 임시 테이블  삭제하기 -->
+	<delete id="deletePopDongForgService" parameterType="map">
+	
+		DROP TABLE data.iff_forn_if
+		
+	</delete>
+	
+		
+	<!-- 50셀단위 시간대별 유동인구 임시 테이블 생성-->
+	<update id="createPopTimeFlow" parameterType="map">
+		CREATE TABLE data.iff_hourly_50cell_if (
+			like data.iff_hourly_50cell
+		)
+	</update>
+	
+	<!-- 50셀단위 시간대별 유동인구 테이블 데이터 추가하기 -->
+	<insert id="insertPopTimeFlow" parameterType="map">
+	
+		INSERT INTO data.iff_hourly_50cell
+		SELECT *
+		FROM data.iff_hourly_50cell_if
+	</insert>
+	
+	<!-- 50셀단위 시간대별 유동인구 데이터 삭제하기 (IF)-->
+	<delete id="deletePopTimeFlow" parameterType="map">
+	
+		DROP TABLE data.iff_hourly_50cell_if
+		 
+	</delete>
+	
+	<!-- 행정동별 성연령별 생활인구 임시 테이블 생성-->
+	<update id="createPopDongGenderAge" parameterType="map">
+		CREATE TABLE data.iff_sex_age_if (
+			like data.iff_sex_age
+		)
+	</update>
+	
+	<!-- 행정동별 성연령별 생활인구 테이블 데이터 추가하기 -->
+	<insert id="insertPopDongGenderAge" parameterType="map">
+	
+		INSERT INTO data.iff_sex_age
+		SELECT *
+		FROM data.iff_sex_age_if
+	</insert>
+	
+	<!-- 행정동별 성연령별 생활인구 테이블 데이터 삭제하기 -->
+	<delete id="deletePopDongGenderAge" parameterType="map">
+		
+		DROP TABLE data.iff_sex_age_if
+	</delete>
+	
+	<!-- 행정동 성연령별 유입지 조합 생활인구 임시 테이블 생성-->
+	<update id="createPopGenderAgeService" parameterType="map">
+		CREATE TABLE data.iff_sex_age_time_if (
+			like data.iff_sex_age_time
+		)
+	</update>
+	
+	<!-- 행정동 성연령별 유입지 조합 생활인구 테이블 데이터 추가하기 -->
+	<insert id="insertPopGenderAgeService" parameterType="map">
+	
+		INSERT INTO data.iff_sex_age_time
+		SELECT *
+		FROM data.iff_sex_age_time_if
+		
+	</insert>
+	
+	
+	<!-- 행정동 성연령별 유입지 조합 생활인구 테이블 데이터 삭제하기 (IF)-->
+	<delete id="deletePopGenderAgeService" parameterType="map">
+	
+		DROP TABLE data.iff_sex_age_time_if
+		
+	</delete>
+	
+	<!-- 행정동별 유입지별 생활인구 임시 테이블 생성-->
+	<update id="createPopFlowService" parameterType="map">
+		CREATE TABLE data.iff_time_if (
+			like data.iff_time
+		)
+	</update>
+	
+	<!-- 행정동별 유입지별 생활인구 테이블 데이터 추가하기 -->
+	<insert id="insertPopFlowService" parameterType="map">
+	
+		INSERT INTO data.iff_time
+		SELECT *
+		FROM data.iff_time_if
+		
+	</insert>
+	
+	<!-- 행정동별 유입지별 생활인구 테이블 데이터 삭제하기 -->
+	<delete id="deletePopFlowService" parameterType="map">
+		
+		DROP TABLE data.iff_time_if
+		 
+	</delete>
+	
+	<!-- 법인매출	 임시 테이블 생성-->
+	<update id="createSaleCorp" parameterType="map">
+		CREATE TABLE data.ifc_corp_sls_if (
+			like data.ifc_corp_sls
+		)
+	</update>
+	
+	<!-- 법인매출	 테이블 데이터 추가하기 -->
+	<insert id="insertSaleCorp" parameterType="map">
+	
+		INSERT INTO data.ifc_corp_sls
+		SELECT *
+		FROM data.ifc_corp_sls_if
+		
+	</insert>
+	
+	<!-- 법인매출	 테이블 데이터 삭제하기 (IF)-->
+	<delete id="deleteSaleCorp" parameterType="map">
+	
+		DROP TABLE data.ifc_corp_sls_if
+		
+	</delete>
+	
+	<!-- 외국인 매출 임시 테이블 생성-->
+	<update id="createSaleForeigner" parameterType="map">
+		CREATE TABLE data.ifc_forn_sls_if (
+			like data.ifc_forn_sls
+		)
+	</update>
+	
+	<!-- 외국인 매출 테이블 데이터 추가하기 -->
+	<insert id="insertSaleForeigner" parameterType="map">
+	
+		INSERT INTO data.ifc_forn_sls
+		SELECT *
+		FROM data.ifc_forn_sls_if
+		
+	</insert>
+	
+	<!-- 외국인 매출 테이블 데이터 삭제하기 -->
+	<delete id="deleteSaleForeigner" parameterType="map">
+		
+		DROP TABLE data.ifc_forn_sls_if
+		 
+	</delete>
+	
+	<!-- 일별/시간대별 매출	 임시 테이블 생성-->
+	<update id="createSaleDayTime" parameterType="map">
+		CREATE TABLE data.ifc_hr_sls_if (
+			like data.ifc_hr_sls
+		)
+	</update>
+
+	<!-- 일별/시간대별 매출 데이터 추가하기 -->
+	<insert id="insertSaleDayTime" parameterType="map">
+	
+		INSERT INTO data.ifc_hr_sls
+		SELECT *
+		FROM data.ifc_hr_sls_if
+		
+	</insert>
+	
+	<!-- 일별/시간대별 매출 테이블 데이터 삭제하기 (IF)-->
+	<delete id="deleteSaleDayTime" parameterType="map">
+	
+		DROP TABLE data.ifc_hr_sls_if
+		
+	</delete>
+	
+	<!-- 월별/유입지별 매출	 임시 테이블 생성-->
+	<update id="createSaleMonthFlow" parameterType="map">
+		CREATE TABLE data.ifc_inflow_sls_if (
+			like data.ifc_inflow_sls
+		)
+	</update>
+	
+	<!-- 월별/유입지별 매출	테이블 데이터 추가하기 -->
+	<insert id="insertSaleMonthFlow" parameterType="map">
+	
+		INSERT INTO data.ifc_inflow_sls
+		SELECT *
+		FROM data.ifc_inflow_sls_if
+		
+	</insert>
+		
+	<!-- 월별/유입지별 매출	테이블 데이터 삭제하기 -->
+	<delete id="deleteSaleMonthFlow" parameterType="map">
+		
+		DROP TABLE data.ifc_inflow_sls_if
+		 
+	</delete>
+	
+	<!-- 일별/성별/연령대별 매출 임시 테이블 생성-->
+	<update id="createSaleDayGenderAge" parameterType="map">
+		CREATE TABLE data.ifc_sexd_age_sls_if (
+			like data.ifc_sexd_age_sls
+		)
+	</update>
+	
+	<!-- 일별/성별/연령대별 매출 추가하기	-->
+	<insert id="insertSaleDayGenderAge" parameterType="map">
+	
+		INSERT INTO data.ifc_sexd_age_sls
+		SELECT *
+		FROM data.ifc_sexd_age_sls_if
+		
+	</insert>
+	
+		
+	<!-- 일별/성별/연령대별 매출 삭제하기 (IF)	-->
+	<delete id="deleteSaleDayGenderAge" parameterType="map">
+	
+		DROP TABLE data.ifc_sexd_age_sls_if
+		
+	</delete>
+	
+	<!-- 의정부시민 매출 임시 테이블 생성-->
+	<update id="createSaleCitizen" parameterType="map">
+		CREATE TABLE data.ifc_ujb_ctzn_sls_if (
+			like data.ifc_ujb_ctzn_sls
+		)
+	</update>
+	
+	<!-- 의정부시민 매출 추가하기	-->
+	<insert id="insertSaleCitizen" parameterType="map">
+	
+		INSERT INTO data.ifc_ujb_ctzn_sls
+		SELECT *
+		FROM data.ifc_ujb_ctzn_sls_if
+		
+	</insert>
+	
+	<!-- 의정부시민 매출 삭제하기 (IF)	-->
+	<delete id="deleteSaleCitizen" parameterType="map">
+	
+		DROP TABLE data.ifc_ujb_ctzn_sls_if
+		
+	</delete>
+	
+</mapper>

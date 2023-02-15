@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+ * 관리자 > Upload 데이터 관리 SQL
+ * @author 신용삼
+ * @since 2022. 08. 10.
+ * @version 1.0
+ * @see
+ *
+ * <pre>
+ * << 개정이력(Modification Information) >>
+ *
+ *  수정일			수정자			수정내용
+ *  ==========    	==========		========================================
+ *  2022. 08. 10.   	권기완          최초 생성
+
+ -->
+<mapper namespace="CityStatMngDAO">
+	<!-- 데이터 유형 목록 조회하기 -->
+	<select id="selectCityStatList" parameterType="map" resultType="resultCamelMap">
+	select lcla_ix
+		 , scla_ix
+		 , stdr_yy::varchar
+		 , valu::varchar
+		from data.ifs_cty_stac_ix 
+	order by stdr_yy desc, lcla_ix asc, scla_ix asc
+	</select>
+	
+	<!-- 엑셀 업로드 전 데이터 삭제-->
+	<delete id="deleteData" parameterType="map">
+		delete from data.ifs_cty_stac_ix where 1=1 and stdr_yy = #{targetMonth}
+	</delete>
+	
+	<!-- 엑셀 업로드-->
+	<insert id="insertData" parameterType="map">
+		INSERT INTO data.ifs_cty_stac_ix
+		(LCLA_IX
+		,SCLA_IX
+		,STDR_YY
+		,VALU
+		)values
+		(#{lclaIx}
+		,#{SclaIx}
+		,#{stdrYy}
+		,#{valu}
+		)
+	</insert>
+</mapper>

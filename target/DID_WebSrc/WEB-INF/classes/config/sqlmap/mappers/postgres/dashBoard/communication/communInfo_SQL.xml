@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="CommunInfoMapper">
+	
+	<!-- 표준노드링크 데이터 조회 -->
+	<select id="selectLinkData" resultType="resultCamelMap">
+		select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'properties', json_build_object(
+										'link_id', a.link_id, 
+										'road_rank', a.road_rank, 
+										'road_name', a.road_name
+										), 
+										'geometry', a.geom
+										) as features
+								  from (SELECT ST_AsGeoJSON(st_geometryn(st_transform(a.geom, 4326), 1))::jsonb as geom
+								  	         , link_id, road_name, road_rank
+									      FROM  "data".ifl_its_link a, cmm_dong_bndr b
+									      WHERE 1=1
+									        AND ST_Within(a.geom, b.geom)
+								      ) a
+								) b
+						)
+			)	
+	</select>
+	
+	<!-- cctv 포인트 데이터 조회 -->
+	<select id="selectCCTVPointData" resultType="resultCamelMap">
+		select json_build_object
+					(
+					'type', 'FeatureCollection', 
+					'features',	( select array_to_json(array_agg(b.features)) 
+									from 	
+										(
+										select json_build_object(
+												'type', 'Feature',
+												'properties', json_build_object(
+													'닉네임', a.닉네임
+												), 
+												'geometry', a.geom
+												) as features
+										  from (SELECT geom, 닉네임
+											      FROM  "data".ivs_api_cctv_ps
+											      WHERE 1=1
+										      ) a
+										) b
+								)
+					)	
+	
+	</select>
+</mapper>

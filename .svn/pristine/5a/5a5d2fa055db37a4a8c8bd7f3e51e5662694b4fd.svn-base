@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="FinanceStatusMapper">
+	<!-- 재정분석 검색기간   -->
+	<select id="selectFinStatusDate" resultType="resultCamelMap">
+		SELECT  to_char(to_date(max(stac_ymd), 'YYYY'),'yyyy') as max, to_char(to_date(min(stac_ymd), 'YYYY'),'yyyy') as min
+		  FROM data.stac_fn_data
+		 WHERE 1=1
+		   AND (STAC_CD = 'FN_STT_001')
+	</select>
+	
+	<!-- 재정 - 부서별 예산 현황 -->
+	<select id="selectFinanceStatusDept" parameterType="map" resultType="resultCamelMap">
+		SELECT STAC_TP as category, 
+			   case when (ATRB_01=0 or atrb_01 is null) then 0 else round(ATRB_01/100000000, 2) end ATRB_01, 
+		   	   case when (ATRB_02=0 or atrb_02 is null) then 0 else round(ATRB_02/100000000, 2) end ATRB_02, 
+		   	   case when (ATRB_03=0 or atrb_03 is null) then 0 else round(ATRB_03/100000000, 2) end ATRB_03
+		  FROM data.stac_fn_data
+		 WHERE 1=1
+		   AND STAC_CD = 'FN_STT_001'
+		 <if test="startYear != null and startYear != ''">
+		   AND stac_ymd = #{startYear}
+		 </if>
+	  ORDER BY ATRB_01 desc;
+	</select>
+	
+	<!-- 재정 - 분야 부문별 예산 현황 -->
+	<select id="selectFinStatusSort" parameterType="map" resultType="resultCamelMap">
+		SELECT split_part(STAC_SE, '\', 1) as full_name, split_part(STAC_SE, '\', 2) as category, REGEXP_REPLACE(STAC_TP,'([0-9.])','','g') as sub_name, 
+		       case when (ATRB_01=0 or atrb_01 is null) then 0 else round(ATRB_01/100000000, 2) end ATRB_01, 
+		   	   case when (ATRB_02=0 or atrb_02 is null) then 0 else round(ATRB_02/100000000, 2) end ATRB_02
+		  FROM data.stac_fn_data
+		 WHERE 1=1
+		   AND STAC_CD = 'FN_STT_002'
+		 <if test="startYear != null and startYear != ''">
+		   AND stac_ymd = #{startYear}
+		 </if>
+	 ORDER BY STAC_TP asc;
+	</select>
+	
+	<!-- 재정 - 부서별집행현황 -->
+	<select id="selectFinStatusExecution" parameterType="map" resultType="resultCamelMap">
+		SELECT STAC_SE as code, STAC_TP as category, 
+			   case when (ATRB_01=0 or atrb_01 is null) then 0 else round(ATRB_01/100000000, 2) end ATRB_01, 
+		   	   case when (ATRB_02=0 or atrb_02 is null) then 0 else round(ATRB_02/100000000, 2) end ATRB_02
+		  FROM data.stac_fn_data
+		 WHERE 1=1
+		   AND STAC_CD = 'FN_STT_003'
+		 <if test="startYear != null and startYear != ''">
+		   AND stac_ymd = #{startYear}
+		 </if>
+		  <!-- ORDER BY stac_ymd asc;  -->
+		   ORDER BY atrb_01 desc;   
+	</select>
+	
+	<!-- 재정현황 - 부서별 계약현황 -->
+	<select id="selectFinStatusContract" parameterType="map" resultType="resultCamelMap">
+		SELECT STAC_TP as code, STAC_SE as category, 
+			   case when (ATRB_01=0 or atrb_01 is null) then 0 else round(ATRB_01/100000000, 2) end ATRB_01
+		  FROM data.stac_fn_data
+		 WHERE 1=1
+		   AND STAC_CD = 'FN_STT_004'
+	   <if test="startYear != null and startYear != ''">
+		   AND stac_ymd = #{startYear}
+	   </if>
+	<!--  ORDER BY STAC_TP asc; -->
+		 ORDER BY atrb_01 desc;
+   
+	</select>
+	
+	<!-- 재정현황 - 부서별 계약현황 테이블 리스트-->
+	<select id="selectFinStatusContractList" parameterType="map" resultType="resultCamelMap">
+		SELECT dep_nm as dept_nm, 
+		       ctrt_nm as title, 
+		       ctrt_kind as sort, 
+		       ctrt_se as year, 
+		       CASE WHEN (ctrt_pd = '' OR ctrt_pd IS NULL ) THEN '미지정' ELSE (case when split_part(ctrt_pd, '~', 1)='' then '~'||split_part(ctrt_pd, '~', 2)::date else to_char(split_part(ctrt_pd, '~', 1)::date, 'yyyy-mm-dd') ||'~' || to_char(split_part(ctrt_pd, '~', 2)::date, 'yyyy-mm-dd') end) END AS term,
+		       --case when split_part(ctrt_pd, '~', 1)='' then '~'||split_part(ctrt_pd, '~', 2)::date else to_char(split_part(ctrt_pd, '~', 1)::date, 'yyyy-mm-dd') ||'~' || to_char(split_part(ctrt_pd, '~', 2)::date, 'yyyy-mm-dd') end as term, 
+		       to_char((ctrt_ymd::date),'yyyy-mm-dd') as date,  
+		       case when prog_cnt is null then '-' else prog_cnt end as prog_de, 
+		       case when ctrt_amt is null then 0 else ctrt_amt end as money 
+		  FROM mart.pdt_fn_dep_ctrt_sttu
+		 WHERE 1=1
+	   <if test="startYear != null and startYear != ''">
+		   AND to_char(ctrt_ymd::date, 'yyyy') = #{startYear}
+	   </if>
+	 ORDER BY ctrt_ymd desc;
+   
+   
+	</select>
+	
+	
+	
+</mapper>

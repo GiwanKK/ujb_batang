@@ -1,0 +1,95 @@
+package kr.go.uijeongbu.dashBoard.complain.complainStatus.service.impl;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+
+import kr.go.uijeongbu.dashBoard.complain.complainStatus.service.ComplainStatusService;
+
+/**
+ * 대시보드 인구 - 민원실 현황 ServiceImpl클래스
+ * @author 김부권
+ * @since 2021. 07. 28.
+ * @version 1.0
+ * @see
+ *
+ * <pre>
+ * << 개정이력(Modification Information) >>
+ *
+ *     수정일			         수정자				수정내용
+ *  -------------    -------------   ----------------------
+ *  2021. 07. 28.	        김 부 권              최초생성
+ *   
+ * </pre>
+ */
+
+@Service("complainStatusService")
+public class ComplainStatusServiceImpl implements ComplainStatusService {
+	
+	@Resource(name = "complainStatusMapper")
+	private ComplainStatusMapper complainStatusMapper;
+
+	@Override
+	public Map<String, Object> selectComplainReceiptDate() {
+		// TODO Auto-generated method stub
+		return complainStatusMapper.selectComplainReceiptDate();
+	}
+
+	@Override
+	public List<Map<String, Object>> selectComplainReceipt(Map<String, Object> param) {
+		// TODO Auto-generated method stub
+		return complainStatusMapper.selectComplainReceipt(param);
+	}
+
+	@Override
+	public List<Map<String, Object>> selectComplainStatus(Map<String, Object> param) {
+		// TODO Auto-generated method stub
+		return complainStatusMapper.selectComplainStatus(param);
+	}
+
+	@Override
+	public List<Map<String, Object>> selectComplainNews(Map<String, Object> param) {
+		// TODO Auto-generated method stub
+		return complainStatusMapper.selectComplainNews(param);
+	}
+
+	@Override
+	public List<Map<String, Object>> selectComplainLiveReceipt() {
+		return complainStatusMapper.selectComplainLiveReceipt();
+	}
+
+	@Override
+	public List<Map<String, Object>> selectComplainLiveStatus() {
+		return complainStatusMapper.selectComplainLiveStatus();
+	}
+	
+	@Override
+	public Map<String, Object> selectComplainLastDate() {
+		return complainStatusMapper.selectComplainLastDate();
+	}
+
+	@Override
+	public List<Map<String, Object>> getMaxNewsList() {
+		// TODO Auto-generated method stub
+		return complainStatusMapper.getMaxNewsList();
+	}
+
+	@Override
+	public List<Map<String, Object>> getMaxNewsList1(Map<String, Object> param) {
+		// TODO Auto-generated method stub
+		return complainStatusMapper.getMaxNewsList1(param);
+	}
+
+	@Override
+	public List<Map<String, Object>> getMaxNewsList2(Map<String, Object> param) {
+		// TODO Auto-generated method stub
+		return complainStatusMapper.getMaxNewsList2(param);
+	}
+
+	
+
+
+}

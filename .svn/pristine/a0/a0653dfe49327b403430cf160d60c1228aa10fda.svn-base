@@ -1,0 +1,86 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ taglib prefix="form"   uri="http://www.springframework.org/tags/form" %>
+<%@ taglib prefix="ui"     uri="http://egovframework.gov/ctl/ui"%>
+<%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
+<%
+  /**
+  * @Class Name : cctvInfo.jsp
+  * @Description : 대시보드 - 소통정보 > CCTV 페이지
+  * @Modification Information
+  *
+  *     수정일                   수정자                          수정내용
+  *  -----------   -------------   ----------------------
+  *  2021.08.25        김혜림                          최초 생성
+  */
+%>	
+
+		<div id="container">
+			<div class="location">
+				<ul class="page_navi">
+					<li><span class="pt2">교통 및 CCTV 현황</span></li>
+					<li class="current_page">CCTV 정보 <span class="tiny_12" style="line-height: 160%;">(실시간 교통 CCTV 현황)</span></li>
+				</ul>
+				<!-- <p class="search_box">
+					<input type="text" class="base_ipt" placeholder="검색일자를 선택하세요" />
+				</p> -->
+			</div>
+			
+			<div class="content_wrap">
+				<div class="content">
+					
+					<div class="col1">
+						<div class="traffic_all">
+							
+							<div id="ujbMap" class="traffic_map"></div>
+
+						</div>
+					</div>
+                    
+				</div>
+			</div>
+			
+		</div>
+		
+<!-- 레이어 모음 -->
+<div class="layerWrap on">
+<!-- 로드뷰 -->
+	<div id="cctvLayer" class="layer-2 " style=" width: 470px !important; height: 370px !important;">
+		<div class="head">
+			<p id="cctvName">로드뷰</p>
+			<button style="padding:0px;background-color:transparent !important" class="layerCloseBtn">
+				<img src="${pageContext.request.contextPath}/dist/images/close.png"
+					alt="" />
+			</button>
+		</div>
+		<div class="body">
+			<div class="row">
+				<video id="cctvVideo"  controls controlsList="nodownload" autoplay style="width:100%;height:300px;">
+					<source id="cctvSource" type="application/x-mpegURL">
+				</video>
+			</div>
+			<div class="row">
+			</div>
+		</div>
+	</div>
+	<!-- 로드뷰 끝 -->
+</div>
+		
+<!-- js 라이브러리 -->
+<!-- Date Time Picker   --> 
+<script src="${pageContext.request.contextPath}/dist/js/moment.min.js"></script>
+    <!-- Date Picker Locale 설정 -->
+<script src="${pageContext.request.contextPath}/dist/js/locale.ko.js"></script>
+<script src="${pageContext.request.contextPath}/dist/js/bootstrap-datetimepicker.min.js"></script>
+<script src="${pageContext.request.contextPath}/dist/js/bootstrap.min.js"></script>    
+<script src="${pageContext.request.contextPath}/dist/js/common/jquery-ui.min.js"></script>
+	<script src="${pageContext.request.contextPath}/dist/js/common/interact.min.js"></script>
+	<script src="${pageContext.request.contextPath}/dist/js/common/etc/loading/ajax-loading.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+	<%-- <script src="${pageContext.request.contextPath}/dist/js/common/video/hls.js"></script> --%>
+     <script src="${pageContext.request.contextPath}/pageJs/dashBoard/communication/cctvInfo.js"></script>
+    <script src="${pageContext.request.contextPath}/dist/js/common/map/mapUtil.js"></script>	
+    	        
+    <script src="${pageContext.request.contextPath}/dist/js/common/commonUtil.js"></script>	
+    <script src="${pageContext.request.contextPath}/dist/js/common/commonChart.js"></script>
+		

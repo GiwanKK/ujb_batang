@@ -1,0 +1,291 @@
+@charset "utf-8";
+/* CSS Document */
+
+.cctv_map {clear:both;display:inline-block;width:49.5%;height:900px;border:1px solid #dedede;margin-right:1.2%;position:relative}
+.cctv_info {clear:both;display:inline-block;width:49%;height:901px}
+.monitoring {display:inline-block;width:48.5%;height:290px;margin:0 1% 15px 0}
+.cctv_m {display:inline-block;width:100%;height:260px;border:1px solid #dedede;text-align:center}
+.cctv_title {display:inline-block;width:100%;height:30px;text-align:center;font-size:16px;line-height:200%}
+
+/*20210826 추가*/
+.traffic_all {width:100%;height:901px;position:relative}
+.traffic_remark {width:360px;min-height:150px;position:absolute;top:0;right:0;z-index:3}
+.traffic_map {width:100%;height:901px}
+
+.remark_table {border:1px solid #444}
+.remark_table th, .remark_table td {height:30px;border-right:1px solid #444;border-bottom:1px solid #444;padding-top:7px;font-size:14px;font-weight:normal;background-color:#2a2a2a;text-align:center}
+.remark_table th:last-child, .remark_table td:last-child {border-right:0 none !important}
+.tf_lv1 {background-color:#06cf28 !important}
+.tf_lv2 {background-color:#fdc400 !important}
+.tf_lv3 {background-color:#e20b0b !important}
+
+/* 20210906 추가 */
+.map_select {position:absolute;top:5px;left:5px;z-index:5}
+.select02 {min-width:170px;height:30px;font-family: inherit;color:#7b7b7b;border-radius:5px;background:#222 url("../image/common/select_arrow.png") no-repeat 95% 50%;border:0 none !important;padding:0 5px 0 10px;-webkit-appearance: none;
+-moz-appearance: none;appearance: none;}
+.cctv_m img {text-align:center !important;}
+
+
+/* 20210929 추가 */
+
+#wrap .layerWrap {
+  z-index: 2;
+  display: none;
+  width: 100%;
+  position: absolute;
+  top: 0;
+}
+#wrap .layerWrap.on {
+  display: block;
+}
+#wrap .layerWrap > div {
+  z-index: 2;
+  position: absolute;
+  display: none;
+  box-shadow: black 0px 0px 5px;
+}
+#wrap .layerWrap > div.on {
+  display: block;
+}
+#wrap .layerWrap > div.settingBox {
+  background-color: #7a828b;
+}
+#wrap .layerWrap > div.settingBox .head {
+  height: 32px;
+  font-size: 13px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #666f83;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+}
+#wrap .layerWrap > div.settingBox .body .row {
+  border-bottom: 1px solid #666f83;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#wrap .layerWrap > div.settingBox .body .row.center {
+  justify-content: center;
+  flex-direction: column;
+}
+#wrap .layerWrap > div.settingBox .body .row.right {
+  justify-content: flex-end;
+}
+#wrap .layerWrap > div.settingBox .body .row .imgBox {
+  margin-bottom: 8px;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  position: relative;
+  background: #515767;
+}
+#wrap .layerWrap > div.settingBox .body .row .leftBox p {
+  font-size: 12px;
+}
+#wrap .layerWrap > div.settingBox .body .row .leftBox p:first-child {
+  margin-bottom: 4px;
+}
+#wrap .layerWrap > div.layer-1 {
+  right: 36px;
+  top: 62px;
+  width: 300px;
+}
+#wrap .layerWrap > div.layer-2 {
+  z-index:7;
+  top: 200px;
+  left: 50%;
+  background-color: #383d43;
+}
+#wrap .layerWrap > div.layer-2.layer-2-1 .body {
+  padding: 24px 24px 16px;
+}
+#wrap .layerWrap > div.layer-2.layer-2-1 .body .row {
+  margin-bottom: 16px;
+  text-align: center;
+  justify-content: center;
+}
+#wrap .layerWrap > div.layer-2.layer-2-1 .body .row:last-child {
+  margin-bottom: 12px;
+}
+#wrap .layerWrap > div.layer-2.layer-2-1 .body .row.btnBox {
+  justify-content: center;
+}
+#wrap .layerWrap > div.layer-2.minimize > .head .layerMiniBtn .minimiSpan {
+  display: none;
+}
+#wrap .layerWrap > div.layer-2.minimize > .head .layerMiniBtn .extendSpan {
+  display: block;
+}
+#wrap .layerWrap > div.layer-2.minimize > .body {
+  display: none;
+}
+#wrap .layerWrap > div.layer-2.positionLeft {
+  top: 50px;
+  left: 340px;
+  margin-left: 0 !important;
+}
+#wrap .layerWrap > div.layer-2.positionRight {
+  right: 425px;
+  /* right: 350px; */
+  top: 110px;
+  left: auto;
+  margin-left: 0 !important;
+}
+#wrap .layerWrap > div.layer-2 > .head {
+  height: 34px;
+  font-size: 14px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #22252c;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  font-weight: 600;
+}
+#wrap .layerWrap > div.layer-2 > .head .layerMiniBtn {
+  font-size: 16px;
+  line-height: 1em;
+}
+#wrap .layerWrap > div.layer-2 > .head .layerMiniBtn .minimiSpan {
+  display: block;
+}
+#wrap .layerWrap > div.layer-2 > .head .layerMiniBtn .extendSpan {
+  display: none;
+}
+#wrap .layerWrap > div.layer-2 > .head .btnBox {
+  display: flex;
+}
+#wrap .layerWrap > div.layer-2 > .body {
+  padding: 15px 24px 16px;
+}
+#wrap .layerWrap > div.layer-2 > .body .row {
+  margin-bottom: 16px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+#wrap .layerWrap > div.layer-2 > .body .row.col {
+  flex-direction: column;
+  align-items: flex-start;
+}
+#wrap .layerWrap > div.layer-2 > .body .row.sb {
+  justify-content: space-between;
+}
+#wrap .layerWrap > div.layer-2 > .body .row.center {
+  justify-content: center;
+}
+#wrap .layerWrap > div.layer-2 > .body .row.end {
+  justify-content: flex-end;
+}
+#wrap .layerWrap > div.layer-2 > .body .row.btnBox {
+  justify-content: flex-end;
+}
+#wrap .layerWrap > div.layer-2 > .body .row.btnBox button {
+  margin-left: 6px;
+  font-weight: 600;
+}
+#wrap .layerWrap > div.layer-2 > .body .row.xScroll {
+  overflow-x: auto;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .fileDiv {
+  width: calc(100% - 132px);
+  margin-right: 6px;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .fileDiv.full {
+  width: 100%;
+}
+#wrap .layerWrap > div.layer-2 > .body .row p.p1 {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+#wrap .layerWrap > div.layer-2 > .body .row p.p2 {
+  font-size: 12px;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .tabBox {
+  display: flex;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .dataList {
+  background-color: #22252c;
+  width: 352px;
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .dataList > li:nth-child(3n+3) button {
+  margin-right: 0;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .dataList > li button {
+  width: 104px;
+  height: 118px;
+  margin: 0 8px 5px 0;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .dataList > li button:hover, #wrap .layerWrap > div.layer-2 > .body .row .dataList > li button.on {
+  /* background-color: #383d43; */
+  border : 2px solid #21BAFF;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .dataList > li button .topBox {
+  width: 100px;
+  height: 68px;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .dataList > li button .topBox img {
+  width: 100%;
+  height: 100%;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .dataList > li button .botBox {
+  padding: 4px;
+  box-sizing: border-box;
+  width: 100%;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .dataList > li button .botBox span {
+  display: block;
+  width: 100%;
+  font-size: 12px;
+  text-align: left;
+  margin-bottom: 2px;
+  line-height: 1.5em;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .graphList {
+  background: #22252c;
+  display: flex;
+  overflow-x: auto;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .graphList li {
+  margin-left: 5px;
+  margin-top: 5px;
+  width: 116px;
+  height: 116px;
+  position: relative;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .graphList li img {
+  width: 100%;
+  height: 100%;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .graphList li .checkDiv {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .choseList {
+  margin-right: 8px;
+  display: flex;
+}
+#wrap .layerWrap > div.layer-2 > .body .row .choseList > li {
+  height: 24px;
+  box-sizing: border-box;
+  padding: 7px 4px 7px 8px;
+  font-size: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #838e98;
+  margin-right: 4px;
+}

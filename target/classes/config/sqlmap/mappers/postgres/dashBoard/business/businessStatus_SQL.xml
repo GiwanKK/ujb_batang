@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="BusinessStatusMapper">
+	<!-- 사업추진현황 검색기간   -->
+	<select id="selectBusiStatusDate" resultType="resultCamelMap">
+		SELECT to_char(to_date(max(stac_ymd), 'YYYYMM'),'yyyy-mm') as max, to_char(to_date(min(stac_ymd), 'YYYYMM'),'yyyy-mm') as min
+		  FROM data.stac_sp_data
+		 WHERE 1=1
+		   <!-- AND (STAC_CD = 'SP_STT_001') -->
+	</select>
+	
+	<!-- 사업추진 - 희망도시 -->
+	<select id="selectBusiStatusHoep" parameterType="map" resultType="resultCamelMap">
+		SELECT 
+	 			case when (ATRB_01 = 0 or ATRB_01 is null )then 0 else ATRB_02/ATRB_01*100 end as percent, 
+	  			case when ATRB_01 is null then 0 else ATRB_01 end as ATRB_01, 
+	  			case when ATRB_02 is null then 0 else ATRB_02 end as ATRB_02, 
+	  			STAC_SE, STAC_TP
+		  FROM data.stac_sp_data
+		 WHERE 1=1
+ 		<if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		   AND STAC_CD = 'SP_STT_001' 
+		ORDER BY case when ATRB_01 = 0 then 0 else ATRB_02/ATRB_01 end desc;
+ 
+	</select>
+	
+	<!-- 사업추진 - 선진교통도시 -->
+	<select id="selectBusiStatusTrans" parameterType="map" resultType="resultCamelMap">
+		SELECT 
+	 			case when (ATRB_01 = 0 or ATRB_01 is null )then 0 else ATRB_02/ATRB_01*100 end as percent, 
+	  			case when ATRB_01 is null then 0 else ATRB_01 end as ATRB_01, 
+	  			case when ATRB_02 is null then 0 else ATRB_02 end as ATRB_02, 
+	  			STAC_SE, STAC_TP
+		  FROM data.stac_sp_data
+		 WHERE 1=1
+		   AND STAC_CD = 'SP_STT_002' 
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+	 ORDER BY case when ATRB_01 = 0 then 0 else ATRB_02/ATRB_01 end desc
+	</select>
+	
+	<!-- 사업추진 - 교육선도도시 -->
+	<select id="selectBusiStatusEducation" parameterType="map" resultType="resultCamelMap">
+	  	SELECT 
+	 			case when (ATRB_01 = 0 or ATRB_01 is null )then 0 else ATRB_02/ATRB_01*100 end as percent, 
+	  			case when ATRB_01 is null then 0 else ATRB_01 end as ATRB_01, 
+	  			case when ATRB_02 is null then 0 else ATRB_02 end as ATRB_02, 
+	  			STAC_SE, STAC_TP
+		  FROM data.stac_sp_data
+		 WHERE 1=1
+		   AND STAC_CD = 'SP_STT_003' 
+		 <if test="startDate != null and startData != ''">
+		   AND substr(stac_ymd,1,6) = #{startDate}
+		 </if>
+		 ORDER BY case when ATRB_01 = 0 then 0 else ATRB_02/ATRB_01 end desc
+	</select>
+	
+	<!-- 사업추진 - 복지도시 -->
+	<select id="selectBusiStatusWelfare" parameterType="map" resultType="resultCamelMap">
+		SELECT 
+	 			case when (ATRB_01 = 0 or ATRB_01 is null )then 0 else ATRB_02/ATRB_01*100 end as percent, 
+	  			case when ATRB_01 is null then 0 else ATRB_01 end as ATRB_01, 
+	  			case when ATRB_02 is null then 0 else ATRB_02 end as ATRB_02, 
+	  			STAC_SE, STAC_TP
+		  FROM data.stac_sp_data
+		 WHERE 1=1
+		   AND STAC_CD = 'SP_STT_004' 
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		   ORDER BY case when ATRB_01 = 0 then 0 else ATRB_02/ATRB_01 end desc
+	</select>
+	
+	<!-- 사업추진 - 행정도시 -->
+	<select id="selectBusiStatusPublic" parameterType="map" resultType="resultCamelMap">
+	  	SELECT 
+	 			case when (ATRB_01 = 0 or ATRB_01 is null )then 0 else ATRB_02/ATRB_01*100 end as percent, 
+	  			case when ATRB_01 is null then 0 else ATRB_01 end as ATRB_01, 
+	  			case when ATRB_02 is null then 0 else ATRB_02 end as ATRB_02, 
+	  			STAC_SE, STAC_TP
+		  FROM data.stac_sp_data
+		 WHERE 1=1
+		   AND STAC_CD = 'SP_STT_005' 
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		 ORDER BY case when ATRB_01 = 0 then 0 else ATRB_02/ATRB_01 end desc
+	</select>
+	
+	<!-- 사업추진 - 클릭시 해당 정보 갖고오기 -->
+	<select id="selectBusiStatusLoad" parameterType="map" resultType="resultCamelMap">
+	  	SELECT pldg_goal as target, PLDG_PD as date, PLDG_CTN as contents, PLDG_BUDG as money, PLDG_EFCT as effect
+		     FROM data.ifb_pldg_prtn_deal
+		    WHERE 1=1
+		 <if test="key != null and key != ''">
+		      AND MNG_NO = #{key}
+		 </if>
+	</select>
+</mapper>

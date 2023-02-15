@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+ * 관리자 > 부서 관리 SQL
+ * @author 신용삼
+ * @since 2019. 07. 08.
+ * @version 1.0
+ * @see
+ *
+ * <pre>
+ * << 개정이력(Modification Information) >>
+ *
+ *  수정일			수정자			수정내용
+ *  ==========    	==========		========================================
+ *  2019.07.08.   	신용삼          최초 생성
+
+ -->
+<mapper namespace="UserAuthMngDAO">
+
+
+	<!-- 유저 목록 조회하기 -->
+	<select id="selectDeptList" parameterType="map" resultType="resultCamelMap">
+		select dept_name, section_name, pos_name, user_name, logon_id as user_id, b.role_name     
+		  from organ_view a
+		   left join
+		       (select c.user_id, c.auth_cd , d.auth_nm as role_name from mng_user_auth c left join mng_auth d on c.auth_cd = d.auth_cd ) b
+		   on a.logon_id = b.user_id
+		 where 1=1
+		 <if test="userName != '' and userName != null">
+		  AND user_name like '%' || #{userName} || '%'
+		  </if>
+		 <if test="department != '' and department != null">
+		  AND dept_id = #{department}::numeric
+		  </if>
+		 <if test="positionId != '' and positionId != null">
+		  AND rank_id = #{positionId}::numeric
+		  </if>
+		  
+	</select>
+	
+	
+	<!-- 부서별 권한 목록 가져오기 -->
+	<select id="selectDeptRoleList" parameterType="map" resultType="resultCamelMap">
+		SELECT auth_cd as role_code, auth_nm as role_name, auth_deci as role_desc, 
+		       (SELECT CASE WHEN COUNT(*) = 0 THEN 'N'
+		                    ELSE 'Y' END as role_selected
+				  FROM mng_user_auth DR
+				 WHERE user_id = #{userId}
+				   AND DR.auth_cd = R.auth_cd
+			   )
+		  FROM mng_auth R
+		 WHERE 1=1
+		 order by auth_cd asc
+		 <!--   AND R.auth_cd <![CDATA[<>]]> 'ROLE_00003' --> 
+	</select>
+	
+	
+	
+	
+	<!-- 부서별 설정 권한 정보 저장하기 -->
+	<insert id="insertDeptRoleInfo" parameterType="map">
+
+		INSERT INTO mng_user_auth
+			(user_id, auth_cd, crt_dt, crt_user_id, use_yn)
+		VALUES
+			(#{userId}, #{roleCode}, NOW(), #{loginId}, 'N')
+			
+	</insert>
+	
+	
+	
+	<!-- 부서별 설정 정보 삭제하기 -->
+	<delete id="deleteDeptRoleInfo" parameterType="map">
+		
+		 DELETE FROM mng_user_auth
+		 WHERE user_id = #{userId}
+		 
+	</delete>
+	
+	
+
+
+</mapper>

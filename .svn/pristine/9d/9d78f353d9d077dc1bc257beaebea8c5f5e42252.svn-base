@@ -1,0 +1,50 @@
+@charset "utf-8";
+/* CSS Document */
+
+.city_left {float:left;width:17%;height:901px}
+/* .city_right {float:left;width:83%;height:901px;position:relative} */
+.prev_baro {position:absolute;top:45%;left:20px;cursor:pointer}
+.next_baro {position:absolute;top:45%;right:0;cursor:pointer}
+
+.barometer_box {width:100%;height:166px;border-radius:5px;background-color:#212121;padding:15px;text-align:center;}
+.barometer_box .category_index {display:inline-block;min-width:42px;height:23px;border-radius:3px;padding:3px 5px 0 5px;font-size:14px}
+.barometer_box .baro_desc {width:100%;margin-top:18px}
+.barometer_box .baro_desc dt {width:100%;font-size:18px;text-align:center;}
+.barometer_box .baro_desc dd {display:inline-block;width:100%;font-size:40px;text-align:center;font-weight:600;padding-top:6px}
+.barometer_box .unit_font {display:inline-block;font-size:16px;padding:22px 0 0 4px;font-weight:400 !important}
+.barometer_box .sup_sm {width:100%;text-align:right;color:#6c6c6c;font-size:14px;margin-top:15px}
+.box_graph {width:100%;height:200px;border-radius:5px;background-color:#212121;padding:15px;margin-top:12px}
+
+.ca01.on, .ca01:hover {border:2px solid #00c0ff;}
+.ca02.on, .ca02:hover {border:2px solid #e9dd5c}
+.ca03.on, .ca03:hover {border:2px solid #84e95c}
+.ca04.on, .ca04:hover {border:2px solid #a461ff}
+.ca05.on, .ca05:hover {border:2px solid #ffb361}
+.ca06.on, .ca06:hover {border:2px solid #7599ff}
+.ca07.on, .ca07:hover {border:2px solid #72e8d0}
+.ca08.on, .ca08:hover {border:2px solid #ee88c9}
+.ca09.on, .ca09:hover {border:2px solid #1ab301}
+.ca10.on, .ca10:hover {border:2px solid #eb7f7f}
+.ca01 .category_index {border:2px solid #00c0ff;color:#00c0ff;}
+.ca02 .category_index {border:2px solid #e9dd5c;color:#e9dd5c;}
+.ca03 .category_index {border:2px solid #84e95c;color:#84e95c;}
+.ca04 .category_index {border:2px solid #a461ff;color:#a461ff;}
+.ca05 .category_index {border:2px solid #ffb361;color:#ffb361;}
+.ca06 .category_index {border:2px solid #7599ff;color:#7599ff;}
+.ca07 .category_index {border:2px solid #72e8d0;color:#72e8d0;}
+.ca08 .category_index {border:2px solid #ee88c9;color:#ee88c9;}
+.ca09 .category_index {border:2px solid #1ab301;color:#1ab301;}
+.ca10 .category_index {border:2px solid #eb7f7f;color:#eb7f7f;}
+
+/* .baro_list_wrap {clear:both;display:block;width:100%;height:941px;padding:0 3% 0 6%} */
+.barometer_sbox {display:inline-block;width:15.6%;height:140px;border-radius:5px;background-color:#212121;text-align:center;padding:12px;margin:0 0.7% 12px 0;}
+.barometer_sbox .category_index {display:inline-block;min-width:42px;height:22px;border-radius:3px;padding:3px 5px 0 5px;font-size:13px}
+.barometer_sbox .baro_desc {width:100%;margin-top:12px}
+.barometer_sbox .baro_desc dt {width:100%;font-size:16px;text-align:center;}
+.barometer_sbox .baro_desc dd {display:inline-block;width:100%;font-size:32px;text-align:center;font-weight:600;padding-top:5px}
+.barometer_sbox .unit_font {display:inline-block;font-size:13px;padding:17px 0 0 4px;font-weight:300 !important}
+.barometer_sbox .sup_sm {width:100%;text-align:right;color:#d1d1d1;font-size:12px;margin-top:15px}
+
+.city_right {float:left;width:100%;height:901px;position:relative}
+
+.baro_list_wrap {clear:both;display:block;width:100%;height:941px;padding:0 3% 0 5%}

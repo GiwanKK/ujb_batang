@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="CityStatisticsMapper">
+		<!-- 도시통계지표 검색기간   -->
+	<select id="selectCityStatisticstDate" resultType="resultCamelMap">
+		SELECT  to_char(to_date(max(stdr_yy::varchar),'yyyy'),'yyyy') as max, min(stdr_yy::varchar) as min
+		  FROM data.ifs_cty_stac_ix 
+	</select>
+	<!-- 도시통계지표 -->
+	<select id="selectCityStatisticsData" parameterType="map" resultType="resultCamelMap">
+		<!-- SELECT a.key_no, b.lcla_ix, b.scla_ix, b.stdr_yy, a.valu 
+	      FROM ( SELECT *,  rank() over(order by ctid asc) as key_no
+	                  FROM data.ifs_cty_stac_ix
+	                ORDER BY LCLA_IX asc ) a, 
+	           ( SELECT
+	                   lcla_ix,
+	                   scla_ix,
+	                   MAX(stdr_yy) AS stdr_yy
+	               FROM
+	                   DATA.ifs_cty_stac_ix
+	              WHERE 1 = 1
+	                AND valu IS NOT NULL
+	                AND valu > 0
+	               GROUP BY
+	                   scla_ix,
+	                   lcla_ix
+	               ORDER BY LCLA_IX ASC ) b
+	      WHERE 1=1 
+	        AND a.lcla_ix = b.lcla_ix 
+	        AND a.scla_ix = b.scla_ix
+	        AND a.stdr_yy = b.stdr_yy
+	    ORDER BY lcla_ix ASC; -->
+		SELECT *,  rank() over(order by ctid asc) as key_no
+  		  FROM data.ifs_cty_stac_ix
+  	    WHERE 1=1
+   		  AND STDR_YY::varchar = #{startDate}
+   		  AND valu > 0
+ 		ORDER BY LCLA_IX asc;
+	</select>
+	
+	<!-- 도시통계지표 개수 -->
+	<select id="selectCityStatisticsCnt" parameterType="map" resultType="int">
+	    SELECT count(DISTINCT LCLA_IX)
+  		  FROM data.ifs_cty_stac_ix
+ 
+	</select>
+	
+	<!-- 도시통계지표 차트 데이터 조회 -->
+	<select id="selectCityStatisticsChart" parameterType="map" resultType="resultCamelMap">
+		<!-- SELECT a.key_no no, b.lcla_ix category, b.scla_ix sub_category, b.stdr_yy year, a.valu value
+	      FROM ( SELECT *,  rank() over(order by ctid asc) as key_no
+	                  FROM data.ifs_cty_stac_ix
+	                ORDER BY LCLA_IX asc ) a, 
+	           ( SELECT
+	                   lcla_ix,
+	                   scla_ix,
+	                   MAX(stdr_yy) AS stdr_yy
+	               FROM
+	                   DATA.ifs_cty_stac_ix
+	              WHERE 1 = 1
+	                AND valu IS NOT NULL
+	                AND valu > 0
+	               GROUP BY
+	                   scla_ix,
+	                   lcla_ix
+	               ORDER BY LCLA_IX ASC ) b
+	      WHERE 1=1 
+	        AND a.lcla_ix = b.lcla_ix 
+	        AND a.scla_ix = b.scla_ix
+	        AND a.stdr_yy = b.stdr_yy
+	    ORDER BY lcla_ix ASC; -->
+		 WITH temp as (
+			SELECT *,  rank() over(order by ctid asc) as key_no
+		  		  FROM data.ifs_cty_stac_ix
+		 		ORDER BY LCLA_IX asc
+			) 
+		SELECT temp.key_no as no, 
+		       temp.lcla_ix as category, 
+		       temp.scla_ix as sub_category, 
+		       temp.stdr_yy as year, 
+		       case when temp.valu is null then 0 else temp.valu end as value
+		  FROM temp, ( SELECT SCLA_IX FROM temp WHERE 1=1 AND key_no = #{keyNo}::numeric ) a
+		 WHERE 1=1
+		   AND a.SCLA_IX = temp.SCLA_IX
+		  ORDER BY temp.stdr_yy asc 
+	</select>
+</mapper>

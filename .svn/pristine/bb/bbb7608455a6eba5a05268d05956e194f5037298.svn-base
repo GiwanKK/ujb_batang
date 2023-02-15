@@ -1,0 +1,33 @@
+@charset "utf-8";
+/* CSS Document */
+
+.welfare_left_wrap {clear:both;width:100%;height:901px}
+
+.welfare_map {clear:both;display:inline-block;width:100%;height:491px;position:relative}
+
+.welfare_grp01 .rm01 {background-color:#ffde00}
+.welfare_grp01 .rm02 {background-color:#a8ff38}
+
+.welfare_left_btm {display:inline-block;width:100%;height:350px;margin-top:20px}
+.capacity_left, .capacity_right {display:inline-block;width:49%;height:350px;}
+.graph_318 {width:100%;height:318px}
+.spacing1_5 {margin-left:1.5%}
+
+.silver_welfare {clear:both;display:inline-block;width:100%;height:491px;}
+.silver_left {display:inline-block;width:60%;height:451px}
+.silver_right {display:inline-block;margin-left:1.5%;width:38%;height:451px}
+.disability_area {display:inline-block;width:100%;height:350px}
+.disability_area .disability_left, .disability_area .disability_right {display:inline-block;width:49%;height:330px;}
+.graph_298 {width:100%;height:298px}
+.table_scroll {width:100%;height:355px;overflow-y:scroll}
+.table_scroll table {width:100%}
+.fx_title {width:96.6%}
+
+@media screen and (-webkit-min-device-pixel-ratio:0){ 
+    .table_scroll table {width:100%}
+	.fx_title {width:98.5%} 
+}
+
+
+.graph_491 {width:100%;height:419px}
+.table_scroll table th, .table_scroll table td, .title_table th {text-align:center !important}

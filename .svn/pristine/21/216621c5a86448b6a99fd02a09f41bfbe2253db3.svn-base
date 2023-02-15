@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="WeatherStatusMapper">
+	
+	<!-- 기준연도   -->
+	<select id="selectWthrStatusDate" parameterType="map" resultType="resultCamelMap">
+		SELECT
+			TO_CHAR(TO_DATE(MAX(stac_ymd), 'YYYYMMDD'), 'yyyy-mm-dd') AS MAX,
+			TO_CHAR(TO_DATE(MIN(stac_ymd), 'YYYYMMDD'), 'yyyy-mm-dd') AS MIN
+		FROM
+			"data".stac_wt_data
+		WHERE
+			1 = 1
+			AND (
+				stac_cd = 'WT_STT_002'
+				OR stac_cd = 'WT_STT_003'
+			)
+	</select>
+
+	<!-- 기온 조회   -->
+	<select id="selectTemperatureData" parameterType="map" resultType="resultCamelMap">
+		SELECT to_timestamp(("basedate"||"basetime"||'00')::varchar, 'yyyymmddhh24miss'), 
+		       case when "obsrvalue" is null then '0' else "obsrvalue" end as tere_val
+		  FROM data.eam_getultrasrtncst
+		 WHERE 1=1
+		   AND nx = 61 and ny = 130
+		   and category = 'T1H'
+		   ORDER BY "basedate" DESC
+		   LIMIT 1
+	</select>
+
+	<!-- 강수량 조회   -->
+	<select id="selectPrecipitationData" parameterType="map" resultType="resultCamelMap">
+		SELECT to_timestamp(("basedate"||"basetime"||'00')::varchar, 'yyyymmddhh24miss'), 
+			   case when "obsrvalue" is null then '0' else "obsrvalue" end as tere_val
+		  FROM data.eam_getultrasrtncst
+		 WHERE nx = 61 and ny = 130
+		   AND category = 'RN1'
+	   ORDER BY "basedate" DESC
+	   LIMIT 1
+	</select>
+
+	<!-- 기타 데이터(공기 관련) 조회   -->
+	<select id="selectAirData" parameterType="map" resultType="resultCamelMap">
+		SELECT to_char(to_timestamp((SELECT datatime FROM "data".eaa_arpltninforinqiresvc AS a  ORDER BY "datatime" DESC
+	   LIMIT 1), 'yyyy-MM-dd HH24:MI'), 'yyyy-MM-dd HH:MI') AS datatime , 
+	           case when "pm10value" is null then '0' else "pm10value" end as "pm10value", 
+	           case when "pm25value" is null then '0' else "pm25value" end as "pm25value", 
+	           case when "o3value" is null then '0' else "o3value" end as "o3value", 
+	           case when "no2value" is null then '0' else "no2value" end as "no2value", 
+	           case when "covalue" is null then '0' else "covalue" end as "covalue", 
+	           case when "so2value" is null then '0' else "so2value" end as "so2value"
+	     FROM "data".eaa_arpltninforinqiresvc
+	     WHERE datatime is not null
+	   ORDER BY "datatime" DESC
+	   LIMIT 1
+	</select>
+	
+	<!-- 미세먼지, 초미세먼지 그리드 데이터 조회  -->
+	<select id="selectAirGridData" parameterType="map" resultType="resultCamelMap">
+	   SELECT stac_cd
+			, TO_CHAR(TO_DATE(stac_ymd, 'YYYYMMDD'), 'dd') AS stac_date
+			, case when atrb_01 is null then 0 else ROUND(atrb_01, 2) end as val
+			, stac_se
+		 FROM "data".stac_wt_data
+		WHERE 1 = 1
+		  AND stac_ymd is not null
+		  AND (
+					stac_cd = 'WT_STT_002'
+					OR stac_cd = 'WT_STT_003'
+				)
+		  AND TO_CHAR(TO_DATE(stac_ymd, 'YYYYMMDD'), 'yyyymm') = #{startDate}
+	</select>
+	
+	<!-- 미세먼지 관측소 조회  -->
+	<select id="selectPm10Obsrvty" parameterType="map" resultType="resultCamelMap">
+		SELECT DISTINCT(stac_se)
+		FROM "data".stac_wt_data
+		WHERE stac_cd = 'WT_STT_002'
+		and TO_CHAR(TO_DATE(stac_ymd, 'YYYYMMDD'), 'yyyymm') = #{startDate}
+	</select>
+	
+	<!-- 초미세먼지 관측소 조회  -->
+	<select id="selectPm25Obsrvty" parameterType="map" resultType="resultCamelMap">
+		SELECT DISTINCT(stac_se)
+		FROM "data".stac_wt_data
+		WHERE stac_cd = 'WT_STT_003'
+		and TO_CHAR(TO_DATE(stac_ymd, 'YYYYMMDD'), 'yyyymm') = #{startDate}
+	</select>
+	
+	<!-- 미세먼지 관측소 날짜 조회  -->
+	<select id="selectPm10ObsrDate" parameterType="map" resultType="resultCamelMap">
+		 SELECT  DISTINCT(TO_CHAR(TO_DATE(stac_ymd, 'YYYYMMDD'), 'dd')) AS stac_date
+		 FROM "data".stac_wt_data
+		WHERE 1 = 1
+		  AND  stac_cd = 'WT_STT_002'
+		  AND TO_CHAR(TO_DATE(stac_ymd, 'YYYYMMDD'), 'yyyymm') = #{startDate}
+		  ORDER BY stac_date ASC 
+	</select>
+
+	<!-- 초미세먼지 관측소 날짜 조회  -->
+	<select id="selectPm25ObsrDate" parameterType="map" resultType="resultCamelMap">
+		 SELECT  DISTINCT(TO_CHAR(TO_DATE(stac_ymd, 'YYYYMMDD'), 'dd')) AS stac_date
+		 FROM "data".stac_wt_data
+		WHERE 1 = 1
+		  AND  stac_cd = 'WT_STT_003'
+		  AND TO_CHAR(TO_DATE(stac_ymd, 'YYYYMMDD'), 'yyyymm') = #{startDate}
+		  ORDER BY stac_date ASC 
+	</select>
+</mapper>

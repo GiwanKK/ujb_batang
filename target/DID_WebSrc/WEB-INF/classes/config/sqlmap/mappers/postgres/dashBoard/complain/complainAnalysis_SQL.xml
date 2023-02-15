@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ComplainAnalysisMapper">
+	<!-- 민원분석 검색기간   -->
+	<select id="selectCompAnalysisDate" resultType="resultCamelMap">
+		SELECT  to_char(to_date(max(stac_ymd), 'YYYYMM'),'yyyy-mm') as max, to_char(to_date(min(stac_ymd), 'YYYYMM'),'yyyy-mm') as min
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND (STAC_CD = 'CC_CVLCPT_001')
+	</select>
+	
+	<!-- 민원 - 민원 현황 -->
+	<select id="selectCompAnalysisStatus" parameterType="map" resultType="resultCamelMap">
+		SELECT STAC_SE as keyword,
+		       ATRB_01 as total_cnt,
+		       round((ATRB_02/(ATRB_02+ATRB_03))*100,1) as positive_cnt,
+		       round((ATRB_03/(ATRB_02+ATRB_03))*100,1) as negative_cnt
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND STAC_CD = 'CC_CVLCPT_001'
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+	</select>
+	
+	<!-- 민원 - 행정동별 민원 상위 -->
+	<select id="selectCompAnalysisRank" parameterType="map" resultType="resultCamelMap">
+		SELECT stac_dong_cd as code, a.dong_NM as name,
+		       ATRB_01
+		  FROM data.stac_cc_data, cmm_dong_bndr a
+		 WHERE 1=1
+		   AND STAC_CD = 'CC_CVLCPT_002'
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		   AND a.dong_CD = stac_dong_cd;
+	</select>
+	
+	<!-- 민원 - 일별 언급량 추이 -->
+	<select id="selectCompAnalysisDay" parameterType="map" resultType="resultCamelMap">
+		SELECT substr(stac_ymd, 7,8) as date, 
+		       ATRB_01 cnt
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND STAC_CD = 'CC_CVLCPT_003'
+		 <if test="startDate != null and startData != ''">
+		   AND substr(stac_ymd,1,6) = #{startDate}
+		 </if>
+		   AND STAC_SE = #{keyword}
+		  ORDER BY stac_ymd asc;  
+	</select>
+	
+	<!-- 민원 - 긍정 부정분석 -->
+	<select id="selectCompAnalysisNp" parameterType="map" resultType="resultCamelMap">
+		SELECT case when ATRB_01 = 0 then '긍정'
+		       when ATRB_01 = 1 then '부정' end as ATRB_01,
+		       ATRB_02 as cnt
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND STAC_CD = 'CC_CVLCPT_004'
+		   AND STAC_SE = #{keyword}
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+	</select>
+	
+	<!-- 민원 - 연관어 분석 -->
+	<select id="selectCompAnalysisRelate" parameterType="map" resultType="resultCamelMap">
+		SELECT STAC_TP as keyword,
+		       case when ATRB_01 is null then 0 else ATRB_01 end as cnt
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND STAC_CD = 'CC_CVLCPT_005'
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		   AND STAC_SE = #{keyword}
+		 ORDER BY STAC_TP = #{keyword} desc, ATRB_01 desc;
+	</select>
+</mapper>

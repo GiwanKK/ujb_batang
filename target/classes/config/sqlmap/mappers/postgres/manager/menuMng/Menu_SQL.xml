@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+ * 관리자 > 메뉴 관리 SQL
+ * @author 신용삼
+ * @since 2019. 07. 08.
+ * @version 1.0
+ * @see
+ *
+ * <pre>
+ * << 개정이력(Modification Information) >>
+ *
+ *  수정일			수정자			수정내용
+ *  ==========    	==========		========================================
+ *  2019.07.08.   	신용삼          최초 생성
+
+ -->
+<mapper namespace="MenuManageDAO">
+
+
+	<!-- 메뉴 목록 조회하기 -->
+	<select id="selectMenuList" parameterType="map" resultType="resultCamelMap">
+		/*
+		SELECT 'MENU_00000' as menu_code, 
+			   '' as parent_code, 
+			   'Root' as menu_name, 
+			   '' as menu_link,
+			   '' as icon_class,
+			   'M' as menu_type,
+			   0 as menu_depth,
+			   'N' as display_yn,
+			   'Y' as use_yn,
+			   '0' as display_seq,
+			   '' as parent_name
+		UNION ALL
+		  
+		SELECT menu_code, parent_code, menu_name, menu_link, 
+		       coalesce(icon_class, '') AS icon_class, menu_type, menu_depth, display_yn, use_yn, display_seq,
+			   case parent_code 
+			   		when 'MENU_00000' THEN 'Root' 
+			   		ELSE (SELECT MAX(menu_name) FROM mng_menu_info Where menu_code = M.parent_code)
+			   END as parent_name 	
+		  FROM mng_menu_info M
+		ORDER BY menu_code
+		*/
+		
+		WITH RECURSIVE RC AS (
+			SELECT Cast(M.indct_orr As integer)  AS HIERARCHY,
+			       M.lwrt_menu_cd as menu_code, 
+				   M.menu_cd as parent_code, 
+				   M.menu_nm as menu_name, 
+				   M.menu_link, 
+				   M.menu_tp as menu_type, 
+				   M.menu_dp as menu_depth, 
+				   M.indct_yn as display_yn, 
+				   M.use_yn as use_yn,
+				   M.indct_orr as display_seq
+			  FROM mng_menu_info M
+			 WHERE 1=1
+			   AND M.menu_cd = 'MENU_00000'
+			UNION ALL
+			SELECT Cast((RC.hierarchy || M.indct_orr)  As integer) AS HIERARCHY,
+			 	   M.lwrt_menu_cd as menu_code, 
+				   M.menu_cd as parent_code, 
+				   M.menu_nm as menu_name, 
+				   M.menu_link, 
+				   M.menu_tp as menu_type, 
+				   M.menu_dp as menu_depth, 
+				   M.indct_yn as display_yn, 
+				   M.use_yn as use_yn,
+				   M.indct_orr as display_seq
+			  FROM mng_menu_info M JOIN RC ON RC.menu_code = M.menu_cd
+			 WHERE 1=1
+		)
+		SELECT 'MENU_00000' as menu_code, 
+			   '' as parent_code, 
+			   'Root' as menu_name, 
+			   '' as menu_link,
+			   'M' as menu_type,
+			   0 as menu_depth,
+			   'N' as display_yn,
+			   'Y' as use_yn,
+			   '0' as display_seq,
+			   '' as parent_name
+		UNION ALL
+		SELECT *
+		  FROM (
+				SELECT menu_code, 
+					   parent_code, 
+					   menu_name, 
+					   menu_link, 
+					   menu_type, 
+					   menu_depth, 
+					   display_yn, 
+					   use_yn, 
+					   display_seq,
+				       CASE parent_code 
+					   		WHEN 'MENU_00000' THEN 'Root' 
+					   		ELSE (SELECT MAX(menu_nm) as menu_name FROM mng_menu_info Where lwrt_menu_cd = M.parent_code)
+					   END as parent_name 	
+				  FROM RC M
+				ORDER BY menu_depth, HIERARCHY
+		) A   
+	</select>
+	
+	
+	<!-- 메뉴 정보 저장하기 -->
+	<insert id="insertMenuInfo" parameterType="map">
+
+		INSERT INTO mng_menu_info
+			(lwrt_menu_cd, menu_cd, menu_nm, menu_link, crt_dt, crt_user_id, mdfcn_dt, mdfcn_user_id, menu_tp, menu_dp, indct_yn, use_yn, indct_orr)
+		VALUES
+			(#{menuCode}, #{parentCode}, #{menuName}, #{menuLink}, NOW(), #{loginId}, null, null, #{menuType}, #{menuDepth}::numeric, #{displayYn}, #{useYn}, #{displaySeq})
+			
+	</insert>
+	
+	
+	<!-- 메뉴 정보 수정하기 -->
+	<update id="updateMenuInfo" parameterType="map">
+	
+		UPDATE mng_menu_info
+		   SET menu_nm		= #{menuName},
+		   	   menu_link		= #{menuLink},
+		   	   menu_tp		= #{menuType},
+		   	   menu_dp		= #{menuDepth}::numeric,
+		   	   indct_yn		= #{displayYn},
+		   	   use_yn			= #{useYn},
+		   	   indct_orr		= #{displaySeq},
+		   	   mdfcn_dt		= NOW(),
+		   	   mdfcn_user_id		= #{loginId}
+		 WHERE lwrt_menu_cd	= #{menuCode}
+	
+	</update>
+	
+	
+	<!-- 메뉴 정보 삭제하기 -->
+	<delete id="deleteMenuInfo" parameterType="map">
+		
+		DELETE FROM mng_menu_info
+		 WHERE lwrt_menu_cd	= #{menuCode}
+		 
+	</delete>
+	
+
+</mapper>

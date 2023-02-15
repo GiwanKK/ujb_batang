@@ -1,0 +1,97 @@
+@charset "utf-8";
+/* CSS Document */
+
+/*인구현황*/
+.popl_total, .popl_course {clear:both;display:inline-block;width:100%;height:271px}
+.popl_age, .popl_sex {clear:both;display:inline-block;width:100%;height:590px}
+.remark {clear:both;float:right;text-align:left;background-color:#222;min-width:100px;height:22px;border-radius:20px;padding:5px 17px 0 17px}
+.remark .rm_man {min-width:20px;font-size:12px;background:url("/dist/images/population/ico_man.png") no-repeat 0 2px;padding:0 0 0 15px;color:#1d87ff;margin-right:10px}
+.remark .rm_woman {min-width:20px;font-size:12px;background:url("/dist/images/population/ico_woman.png") no-repeat 0 3px;padding:0 0 0 15px;color:#ff64d1}
+.graph_221 {clear:both;display:inline-block;width:100%;height:221px;margin-top:10px;}
+.data_wrap {clear:both;float:left;width:100%;height:547px}
+.data_left {float:left;width:60%;height:547px;padding-right:20px;overflow-y:auto}
+.data_right {float:left;width:40%;height:547px;}
+.conlist_wrap {clear:both;float:left;width:100%;height:231px}
+.con_box {float:left;width:19.2%;height:231px;margin-right:1%}
+.con_box .top_b_box {float:left;width:100%;height:140px;border-radius:5px;background-color:#323232;padding:18px}
+.top_b_box dt {float:left;width:100%;height:30px;font-size:20px}
+.top_b_box dd {float:left;width:100%;height:74px;text-align:right;font-size:60px;font-weight:800;letter-spacing:-0.05em;padding-right:8px}
+.bottom_s_box {float:left;width:48%;height:79px;margin:12px 4% 0 0;border-radius:5px;background-color:#323232;padding:14px}
+.bottom_s_box dt {float:left;width:100%;height:28px}
+.bottom_s_box dd {float:left;width:100%;height:51px;text-align:right;font-size:20px;font-weight:600;letter-spacing:-0.05em}
+.con_box .bottom_s_box:last-child, .conlist_wrap .con_box:last-child {margin-right:0 !important}
+.rateImg{margin-right: 5px;margin-top:10px;}
+.rate_num img {padding:11px 3px 0 0}
+.txt_unit {float:right;font-size:14px;padding:8px 0 0 2px}
+
+.sex_graph {float:left;width:100%;height:250px;background-color:#323232;border-radius:10px}
+.chart_wrap .sex_graph:last-child {margin-top:19px !important}
+.grp_m {background:#323232 url("/dist/images/population/grp_bg_man.png") no-repeat 25% 44%}
+.grp_w {background:#323232 url("/dist/images/population/grp_bg_woman.png") no-repeat 25% 44%}
+
+/*유동인구*/
+.flow_area01, .flow_area02 {clear:both;display:inline-block;width:100%;height:491px}
+.flow_area03, .flow_area04 {clear:both;display:inline-block;width:100%;height:370px}
+.graph_451 {width:100%;height:451px}
+.move_info {position:absolute;top:10px;left:10px;font-size:14px;color:#d2d1d1;line-height:140%}
+.graph_320 {float:left;width:100%;height:320px;margin-top:10px}
+/* .list_title {display:inline-block;width:100%;height:36px;border-top:1px solid #616161;border-bottom:1px solid #616161;vertical-align:top}
+.list_title li {display:inline-block;height:36px;border-right:1px solid #616161;text-align:center;padding:10px;font-size:14px;vertical-align:top} */
+.list_title li:last-child {border-right:0 none !important}
+.roll_list {width:100%;height:294px;overflow-y:auto}
+
+/*유동인구팝업*/
+.map_pop {clear:both;width:100%;height:calc(100vh)}
+.p_map_body {width:100%;display:inline-block;height: calc(100vh - 36px);position:relative}
+.p_map_title {width:100%;height:36px;background-color:#1e1e1e;padding:10px;}
+/* .map_pop {width:100%;}
+.p_map_body {width:100%;height:500px;position:relative;min-height: 900px;max-height: 3000px;height: 100%;} */
+/* .p_map_body {width:100%;height:500px;position:relative} */
+
+/*전입전출순이동*/
+.move_area01 {float:left;width:100%;height:321px;position:relative}
+.move_area02 {clear:both;display:inline-block;width:100%;height:460px}
+.move_area03 {clear:both;display:inline-block;width:100%;height:861px}
+.subcon_all {float:left;width:100%;height:321px;}
+.subcon_area {float:left;width:49%;height:321px}
+.subtitle {width:100%;height:20px;margin-bottom:12px}
+.ml2p {margin-left:2%}
+.sm_rollist {clear:both;display:inline-block;width:100%;height:289px;overflow-y:auto}
+.subcon_bottom {clear:both;display:inline-block;width:100%;height:500px;margin-top:40px}
+.move_map {clear:both;display:inline-block;width:100%;height:468px;position:relative}
+.select_map {display:inline-block;position:absolute;top:78px;left:56px;z-index:9}
+.select_map li {display:inline-block;width:100%;padding-bottom:8px}
+.deco_bird {position:absolute;top:0;left:32%;width:78px;height:63px;z-index:8;background:url("/dist/images/population/pic_bird.png") no-repeat 0 0;font-size:0}
+.deco_leaf {position:absolute;bottom:0;right:32%;width:58px;height:60px;z-index:8;background:url("/dist/images/population/pic_leaf.png") no-repeat 0 0;font-size:0}
+.move_area01 .movedata_all {float:left;width:100%;height:271px;margin-top:30px;border-radius:10px;background-color:#323232;padding:30px}
+.move_in {float:left;width:40%;height:211px;padding-right:20%;background:url("/dist/images/population/pic_arrow_blue.png") no-repeat 86% 80px}
+.move_center {float:left;width:20%;height:211px;}
+.move_out {float:left;width:40%;height:211px;padding-left:20%;background:url("/dist/images/population/pic_arrow_orange.png") no-repeat 18% 80px}
+.move_box {float:left;width:100%;height:211px}
+.move_box dt {float:left;width:100%;height:42px;border-bottom:1px solid #707070;text-align:center;font-weight:normal;font-size:24px;}
+.move_box dd {float:left;width:100%;text-align:center;}
+.move_box dd.move_num {font-size:72px;font-weight:800;letter-spacing:-0.05em;padding:32px 0 20px 0}
+.move_perc {float:left;min-width:66%;height:32px;border-radius:20px;background-color:#3a3a3a;padding:7px 12px 0 12px;margin-left:15%}
+.ext_move {z-index: 1;position:absolute;top:0;right:12px}
+
+/* 211011 전체검색 추가 */
+.ext_move_bottom {z-index: 1;position:absolute;bottom:10px;right:12px}
+.ext_move_lt {z-index: 1;position:absolute;left:10px;top:10px}
+#btnTotalSearch {cursor:pointer;}
+#btnRefresh {cursor:pointer;}
+#btnSummaryData {cursor:pointer}
+#btnLiveData {cursor:pointer}
+.popManStatusTitle {position: absolute;padding: 10px;font-size: 14px}
+.popWomanStatusTitle {position: absolute;margin-top: 269px;padding: 10px;font-size: 14px;}
+
+/*210803추가*/
+@media all and (max-width:1366px) {
+	.move_in, .move_out {background:none !important}
+	.move_perc {width:100%;font-size:14px;margin:0}
+}
+
+
+
+#btnExtend:active, #btnExtend:hover{
+	color: #ffffff;
+}

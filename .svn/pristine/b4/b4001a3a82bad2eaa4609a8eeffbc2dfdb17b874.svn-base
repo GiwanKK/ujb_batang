@@ -1,0 +1,117 @@
+var loading = $.loading();
+$(function () {
+	var currForm = new FORM("tab-1");
+	
+	$('.dateSelect').datetimepicker({
+		format: 'YYYY',
+		//defaultDate: moment(new Date('2018-01-01'))  
+	});
+	
+    // 데이터 유형 Grid 객체 선언
+    var ax5GridViewUploadData = null;
+	
+	// 데이터 유형 목록 그리드 생성
+    fn_initDataTypeGrid();
+    
+    // 데이터 유형 목록 그리드 생성
+    function fn_initDataTypeGrid() {
+    	
+    	// 그리드 설정을 위한 Config 정보 객체
+	    var gridConfigInfo = {};
+		
+    	// Columns 정보 설정
+    	gridConfigInfo.columns = [
+    		{key: "stdrYy", 				label: "년도", 			width: 100,		align: "center"},
+    		{key: "lclaIx", 				label: "지표 대분류", 	width: 150,		align: "center" },
+    		{key: "sclaIx", 				label: "지표 상세분류",		width: 200,		align: "left"},
+    		{key: "valu", 					label: "값", 	width: 100,		align: "left"}
+        ];
+    	
+		// Page Display 옵션
+    	gridConfigInfo.page = {display:false};
+    	
+    	gridConfigInfo.grouping = {display:false};
+    	
+    	// 그리드 생성하기
+	    GRID.createGridView("upload-data-grid", gridConfigInfo, function(ax5Grid){
+	    	
+	    	// 화면별 그리드 사용을 위해 객체를 Return 받는다
+	    	ax5GridViewUploadData = ax5Grid;
+	    	
+	    	GRID.setMergeColumn(ax5GridViewUploadData, ['stdrYy', 'lclaIx']);
+	    	
+	    	// 데이터 유형 목록 데이터 가져오기
+	    	fn_getUploadDataList();
+	    });
+    };
+    
+	
+	
+	// 데이터 유형 목록 데이터 가져오기
+	function fn_getUploadDataList() {
+		
+		var requestUrl = "/mamager/uploadDataMng/getCityStatList.do";
+		
+		var param ={};
+		
+		param.paramInfo = {};
+		
+		//GRID.setGridDataAjax(ax5GridViewRole, requestUrl, param);
+		
+		// 메뉴 목록 조회하기 Loading bar를 보여주기 위해 Util.Request 사용
+		Util.request(requestUrl, param, function(resultData){
+			console.log("resultData.gridList : " , resultData.gridList)
+			GRID.setGridData(ax5GridViewUploadData, resultData.gridList);
+		});
+	};
+	
+	
+	// 저장 버튼 Click Event
+	$("#btnCreateData").on("click", function(){
+		
+			if($("#targetMonth").val() == ''){
+				alert("년도를 입력해주세요");
+				$("#targetMonth").focus();
+				return false;
+			}else if (!$("#uploadFiles").val()){
+				alert("파일을 선택해주세요");
+				$("#uploadFiles").focus();
+				return false;
+			}
+					setTimeout(function(){
+						
+						var formData = new FormData();
+						
+						var uploadFile = $("#uploadFiles")[0].files[0];
+						var targetMonth = $("#targetMonth").val();
+						
+						formData.append("targetMonth", targetMonth);
+						formData.append("uploadFile", uploadFile);
+						console.log("formData : " , formData)
+						// Ajax 방식으로 파일 업로드
+						Util.requestFileUplaod("/mamager/uploadDataMng/cityStatUpload.do", formData, function(result){
+							
+				        	if(result.resultValue == "Y"){
+				        		alert(result.resultMsg);
+				        		fn_initFormData();
+				        		// 데이터 유형 목록 데이터 가져오기
+				        		fn_getUploadDataList();
+				        	}else{
+								alert(result.resultMsg);
+							}
+				        });
+
+					}, 500);
+	});
+	
+	// 입력 항목 초기화 하기
+	function fn_initFormData() {
+
+		currForm.setValue("targetMonth", "");
+		currForm.setValue("uploadFiles", "");
+		
+		GRID.setGridData(ax5GridViewUploadData, []);
+		
+		
+	};
+});

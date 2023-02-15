@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ComplainPublicMapper">
+	<!-- 여론분석 검색기간   -->
+	<select id="selectCompPublicDate" resultType="resultCamelMap">
+		SELECT  to_char(to_date(max(substr(stac_ymd,1,6)), 'YYYYMM'),'yyyy-mm') as max, to_char(to_date(min(substr(stac_ymd,1,6)), 'YYYYMM'),'yyyy-mm') as min
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND (STAC_CD = 'CC_SNS_001' or stac_cd='CC_SNS_002' or stac_cd = 'CC_SNS_003' or stac_cd = 'CC_SNS_004')
+	</select>
+	
+	<!-- 여론 현황 -->
+	<select id="selectCompPublicStatus" parameterType="map" resultType="resultCamelMap">
+		SELECT STAC_SE as keyword,
+		       coalesce(ATRB_01, 0) as total_cnt,
+		       round((ATRB_02/(ATRB_02+ATRB_03))*100,1) as positive_cnt,
+		       round((ATRB_03/(ATRB_02+ATRB_03))*100,1) as negative_cnt
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND STAC_CD = 'CC_SNS_001'
+		 <if test="startDate != null and startDate != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+	</select>
+	
+	<!-- 여론 키워드 관련글 -->
+	<select id="selectCompPublicKeyword" parameterType="map" resultType="resultCamelMap">
+		<!-- SELECT reg_id as no,
+		       sj as title,
+		       sns_url as url,
+		       case when ctgr_nm = 'naver_blog' then '네이버 블로그'
+		       		when ctgr_nm = 'naver_news' then '네이버 뉴스'
+		       else '인스타그램' end as sort,
+		       to_char(crtr_ymd::date, 'yyyy-mm-dd') as date
+		  FROM mart.pdt_cc_sns_sj
+		 WHERE 1=1
+		 <if test="startDate != null and startDate != ''">
+		   AND substr(crtr_ymd, 1, 6) = #{startDate}
+		 </if>
+		   ORDER BY reg_id desc
+		LIMIT 10; -->
+		select distinct * from
+			(select bsct_sj as title,
+					 bsct_ctn as content,
+					  case when colc_path = 'naver_blog' then '네이버 블로그'
+					  else '인스타그램' end as sort ,
+		       		 to_char(colc_de::date, 'yyyy-mm-dd') as date,
+		       		 bsct_url as url
+			from data.ess_sns_data a
+			where 1=1 
+			<if test="startDate != null and startDate != ''">
+			AND substr(to_char(colc_de::date,'yyyymmdd'), 1, 6)  = #{startDate}
+			</if>
+ 			<if test="keyword != null and keyword != ''">
+			and (bsct_sj like '%'||#{keyword}||'%'  
+			or bsct_ctn like '%'||#{keyword}||'%') 
+			</if>
+		union all
+		select  news_sj, 
+				news_ctn,
+				case when colc_path = 'naver_news' then '네이버 뉴스'
+				when colc_path = 'ujb_news' then '의정부 뉴스'
+	    		else '인스타그램' end,
+				to_char(colc_de::date, 'yyyy-mm-dd'),
+				news_url
+			from data.esn_news_data b
+			where 1=1 
+			<if test="startDate != null and startDate != ''">
+			AND substr(to_char(colc_de::date,'yyyymmdd'), 1, 6)  = #{startDate}
+			</if>
+ 			<if test="keyword != null and keyword != ''">
+			and (news_sj like '%'||#{keyword}||'%'  
+			or news_ctn like '%'||#{keyword}||'%') 
+			</if>) a
+ 		order by  date desc, title
+ 		limit 14;
+	</select>
+	
+	<!-- 일별 언급량 추이 -->
+	<select id="selectCompPublicDay" parameterType="map" resultType="resultCamelMap">
+		SELECT substr(stac_ymd, 7,8) as date,
+   		       coalesce(ATRB_01, 0) as cnt
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND STAC_CD = 'CC_SNS_002'
+		 <if test="startDate != null and startDate != ''">
+		   AND substr(stac_ymd, 1, 6) = #{startDate}
+		 </if>
+		 <if test="keyword != null and keyword != ''">
+		   AND STAC_SE =  #{keyword}
+		 </if>
+		 ORDER BY stac_ymd asc;
+	</select>
+	
+	<!-- 워드 클라우드 -->
+	<select id="selectCompPublicWordcloud" parameterType="map" resultType="resultCamelMap">
+		SELECT STAC_SE as keyword,
+		       coalesce(ATRB_01, 0) as cnt
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		 <if test="startDate != null and startDate != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		   AND STAC_CD = 'CC_SNS_003'
+		 ORDER BY ATRB_01 desc;
+	</select>
+	
+	<!-- 연관어 분석 -->
+	<select id="selectCompPublicRelate" parameterType="map" resultType="resultCamelMap">
+		SELECT * 
+  	 FROM (
+        SELECT DISTINCT STAC_TP as keyword,
+		       coalesce(ATRB_01, 0) as cnt
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND STAC_CD = 'CC_SNS_004'
+		 <if test="startDate != null and startDate != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		 <if test="keyword != null and keyword != ''">
+		   AND STAC_SE = #{keyword}
+		 </if>
+		 ) a
+		 ORDER BY keyword =  #{keyword} desc, cnt desc;
+	</select>
+	
+	
+</mapper>

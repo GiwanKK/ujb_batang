@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="InnovationTrendMapper">
+	
+	<select id="selectCompanyInnovation" resultType="resultCamelMap">
+		SELECT
+			b.dong_nm as admd_nm,
+			a.atrb_01,
+			a.atrb_02,
+			a.atrb_03,
+			a.atrb_04,
+			substring(a.stac_ymd,0,5)||'년 '||substring(a.stac_ymd,5,2)||'월' AS date  
+		FROM data.stac_et_data a,
+			cmm_dong_bndr b
+		WHERE a.stac_cd = 'ET_INV_001'
+			AND a.stac_dong_cd = b.dong_cd
+			AND a.stac_ymd = (
+				SELECT
+					MAX(stac_ymd)
+				FROM data.stac_et_data
+				WHERE stac_cd = 'ET_INV_001'
+			)
+		ORDER BY b.dong_nm
+	</select>
+	
+	<select id="selectCompanyInvestment" resultType="resultCamelMap">
+		SELECT
+			stac_se,
+			stac_ymd,
+			atrb_01,
+			(atrb_01/(SELECT coalesce(MAX(atrb_01),1) FROM data.stac_et_data WHERE stac_cd = 'ET_INV_002')*100)::INT percent
+		FROM data.stac_et_data
+		WHERE stac_cd = 'ET_INV_002'
+		ORDER BY stac_se, stac_ymd DESC
+	</select>
+	
+	<select id="selectCompanyRnd" resultType="resultCamelMap">
+		SELECT
+			stac_ymd,
+			ROUND(atrb_01/1000) atrb_01
+		FROM data.stac_et_data
+		WHERE stac_cd = 'ET_INV_003'
+			AND stac_ymd::int &gt; (
+				SELECT
+					MAX(stac_ymd)::int-5
+				FROM data.stac_et_data
+				WHERE stac_cd ='ET_INV_003'
+			)
+		ORDER BY stac_ymd
+	</select>
+</mapper>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="CalamityStatusMapper">
+	
+	<!-- 재난현황 - 의정부시 행정동경계 -->
+	<select id="selectCalaAdmdMap" parameterType="map" resultType="resultCamelMap">
+		select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'properties', json_build_object(
+										'admd_nm' , dong_nm
+										), 
+										'geometry', a.geom
+										) as features
+								  from (SELECT ST_AsGeoJSON(st_geometryn(st_transform(geom, 4326), 1))::jsonb as geom, dong_nm
+									      FROM cmm_dong_bndr
+								      ) a
+								) b
+						)
+			)
+ 
+	</select>
+	
+	<!-- 재난현황 - 재난 돌발상황정보 데이터 조회 --><!-- pdt_ds_unpd_sin_test -> pdt_ds_unpd_sin -->
+	<select id="selectCalaStatusMap" parameterType="map" resultType="resultCamelMap">
+		select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'properties', json_build_object(
+										'info', info,
+										'tp',tp
+										), 
+										'geometry', a.geom
+										) as features
+								  from (SELECT ST_AsGeoJSON(st_geometryn(st_transform(a.geom, 4326), 1))::jsonb as geom,
+								  				a.unpd_sin_info as info,
+								  				a.unpd_sin_tp as tp
+									      from mart.pdt_ds_unpd_sin a, cmm_dong_bndr b
+											where ST_Intersects(st_transform(b.geom, 4326) ,st_transform(a.geom, 4326))
+											order by crtr_dt desc
+          									LIMIT 10
+								      ) a
+								) b
+						)
+			)
+ 
+	</select>
+	
+	<!-- 재난현황 - 재난 돌발상황정보 데이터 조회 -->
+	<select id="selectCalaStatusData" parameterType="map" resultType="resultCamelMap">
+		SELECT
+ 				unpd_sin_tp as tp, unpd_sin_info as info ,substring( crtr_dt,0,5)||'년'||' '||substring( crtr_dt,5,2)||'월' as date
+          FROM mart.pdt_ds_unpd_sin
+          order by crtr_dt desc
+          LIMIT 5;
+ 
+	</select>
+	
+	<!-- 재난현황 - 재난 유형별 구조수 데이터 조회 -->
+	<select id="selectCalaCaseCnt" parameterType="map" resultType="resultCamelMap">
+		SELECT ATRB_01,  STAC_SE , substring( A.DATE,0,5)||'년'||' '||substring( A.DATE,5,7)||'월' as date
+			  FROM data.stac_ds_data,
+			       ( SELECT max(STAC_YMD) as date FROM data.stac_ds_data WHERE STAC_CD = 'DS_STT_002' ) a
+			 WHERE 1=1
+			   AND STAC_CD = 'DS_STT_002'
+			   AND a.date = STAC_YMD
+			ORDER BY ATRB_01 desc;
+		   
+	</select>
+	
+	<!-- 재난현황 - 재난 발화장소별 화재 발생 누적현황 데이터 조회 -->
+	<select id="selectCalaPlaceTotal" parameterType="map" resultType="resultCamelMap">
+	  	SELECT ATRB_01, STAC_SE, A.date
+			  FROM data.stac_ds_data,
+			       ( SELECT max(STAC_YMD) as date FROM data.stac_ds_data WHERE STAC_CD = 'DS_STT_003' ) a
+			 WHERE 1=1
+			   AND STAC_CD = 'DS_STT_003'
+			   AND a.date = STAC_YMD
+			ORDER BY ATRB_01 desc;
+			   
+	</select>
+	
+	<!-- 재난현황 - 재난 발화요인별 화재 발생 누적현황 데이터 조회 -->
+	<select id="selectCalaFactorTotal" parameterType="map" resultType="resultCamelMap">
+		SELECT ATRB_01, STAC_SE , a.date
+			  FROM data.stac_ds_data,
+			       ( SELECT max(STAC_YMD) as date FROM data.stac_ds_data WHERE STAC_CD = 'DS_STT_004' ) a
+			 WHERE 1=1
+			   AND STAC_CD = 'DS_STT_004'
+			   AND a.date = STAC_YMD
+			ORDER BY ATRB_01 desc;
+	</select>
+	
+</mapper>

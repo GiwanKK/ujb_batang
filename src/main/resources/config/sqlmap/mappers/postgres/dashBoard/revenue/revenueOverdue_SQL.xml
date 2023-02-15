@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="RevenueOverdueMapper">
+	<!-- 체납 수납 현황 검색기간   -->
+	<select id="selectRevnOverdueDate" resultType="resultCamelMap">
+		SELECT to_char(to_date(max(stac_ymd), 'YYYYMM'),'yyyy-mm') as max, to_char(to_date(min(stac_ymd), 'YYYYMM'),'yyyy-mm') as min
+		  FROM data.stac_tr_data
+		 WHERE 1=1
+		   AND (STAC_CD = 'TR_DFT_001')
+	</select>
+	
+		<!-- 체납 및 수납 현황 지도 네추럴 브레이크 구간값  -->
+	<select id="selectRevnOverdueMapRange" parameterType="map" resultType="resultCamelMap">
+		select * from fn_natural_break_dashBoard('3', 
+		
+		<choose>
+	        <when test="sort == 1">
+	       		'dft_gramt'
+			</when>
+	       	<when test="sort == 2">
+				'rcvmt_gramt'					        
+	       	</when>
+	       </choose>
+		<choose>
+	        <when test="sort == 1">
+	       		,'pdt_tr_dong_dft'
+			</when>
+	       	<when test="sort == 2">
+				,'pdt_tr_dong_rcvmt'								        
+	       	</when>
+	       </choose>
+		 , '5', #{condition});
+	</select>
+	
+	<!-- 체납 및 수납 현황 지도 -->
+	<select id="selectRevnOverdueMap" parameterType="map" resultType="resultCamelMap">
+		  select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'properties', json_build_object(
+										'dong_cd', dong_cd, 
+										'value', value,
+										'admd_nm', dong_nm
+										), 
+										'geometry', a.geom
+										) as features
+								  from (SELECT ST_AsGeoJSON(st_geometryn(st_transform(cmm_dong_bndr.geom, 4326), 1))::jsonb as geom,
+								  	cmm_dong_bndr.dong_cd, 
+								  	<choose>
+								        <when test="sort == 1">
+								       		dft_gramt as value,
+										</when>
+								       	<when test="sort == 2">
+											rcvmt_gramt as value,							        
+								       	</when>
+							       </choose>
+								  	cmm_dong_bndr.dong_NM
+									      FROM 
+							      		<choose>
+									        <when test="sort == 1">
+									       		mart.pdt_tr_dong_dft a
+											</when>
+									       	<when test="sort == 2">
+												mart.pdt_tr_dong_rcvmt	 a							        
+									       	</when>
+									       </choose>
+									      		, cmm_dong_bndr
+									      WHERE 1=1
+		         							AND cmm_dong_bndr.dong_CD = a.dong_cd
+										<if test="startDate != null and startData != ''">
+		         							AND crtr_ym = #{startDate}
+										   </if>  
+										       
+								      ) a
+								) b
+						)
+			)
+	</select>
+	
+	<!-- 체납 및 수납 현황 테이블 -->
+	<select id="selectRevnOverdueTable" parameterType="map" resultType="resultCamelMap">
+		SELECT case when ATRB_01 is null then 0 else ATRB_01 end as ATRB_01, 
+			   case when ATRB_02 is null then 0 else ATRB_02 end as ATRB_02, 
+			   case when ATRB_03 is null then 0 else ATRB_03 end as ATRB_03, 
+			   case when STAC_SE is null then '' else STAC_SE end as STAC_SE, 
+			   case when STAC_TP is null then '' else STAC_TP end as STAC_TP
+          FROM data.stac_tr_data
+         WHERE 1=1
+         <choose>
+         	<when test="sort == 1">
+           AND STAC_CD = 'TR_DFT_001'
+         	</when>
+         	<when test="sort == 2">
+           AND STAC_CD = 'TR_RCV_001'
+         	</when>
+         </choose>
+         <choose>
+       	<when test="code != null and code != ''">
+	     AND stac_dong_cd =  #{code}
+       	</when>
+       	<otherwise>
+	     AND stac_dong_cd =  '4115000000'
+		</otherwise>
+       </choose>
+		<if test="startDate != null and startData != ''">
+	     AND stac_ymd = #{startDate}
+	   </if>      
+		         
+	    	  
+	</select>
+	
+	<!-- 체납 및 수납 현황 - 연도별 체납/수납 현황 -->
+	<select id="selectRevnOverdueYear" parameterType="map" resultType="resultCamelMap">
+		SELECT *
+           FROM
+		     (    
+		      SELECT case when stac_ymd is null then '' else stac_ymd end as stac_ymd, 
+		             case when ATRB_01 is null then 0 else round(ATRB_01/1000000,0) end ATRB_01
+		        FROM data.stac_tr_data
+		       WHERE 1=1
+	         <choose>
+	         	<when test="sort == 1">
+	             AND STAC_CD = 'TR_DFT_002'
+	         	</when>
+	         	<when test="sort == 2">
+	             AND STAC_CD = 'TR_RCV_002'
+	         	</when>
+	         </choose>
+		      ORDER BY stac_ymd desc
+		      LIMIT 10 ) a
+		     ORDER BY stac_ymd asc;
+	</select>
+	
+	<!-- 체납 및 수납 현황 - 세목별 체납/수납 현황  -->
+	<select id="selectRevnOverdueStatus" parameterType="map" resultType="resultCamelMap">
+	  SELECT round(ATRB_01/1000000, 1) ATRB_01, STAC_SE, STAC_TP, cmm_ujb_dong_nm.dong_nm as ADMD_NM
+        FROM data.stac_tr_data, cmm_ujb_dong_nm
+       WHERE 1=1
+       <choose>
+       	<when test="sort == 1">
+         AND STAC_CD = 'TR_DFT_003'
+       	</when>
+       	<when test="sort == 2">
+         AND STAC_CD = 'TR_RCV_003'
+       	</when>
+       </choose>
+        <if test="startDate != null and startData != ''">
+	     AND stac_ymd = #{startDate}
+	   </if>
+	   <choose>
+       	<when test="code != null and code != ''">
+	     AND stac_dong_cd =  #{code}
+       	</when>
+       	<otherwise>
+	     AND stac_dong_cd =  '4115000000'
+		</otherwise>
+       </choose>
+	     AND stac_dong_cd = cmm_ujb_dong_nm.dong_CD
+	     ORDER BY ATRB_01 desc
+	</select>
+	
+</mapper>

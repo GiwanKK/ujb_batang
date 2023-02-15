@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="EmploymentTrendMapper">
+	
+	<select id="selectEmdEmploymentLastYear" resultType="String">
+		SELECT
+			MAX(crtr_yr) crtr_yr
+		FROM mart.rie_et_dong_emp_cnt
+	</select>
+	
+	<select id="selectEmdEmploymentMinMaxYear" resultType="resultCamelMap">
+		SELECT
+			MAX(crtr_yr) max, MIN(crtr_yr) min
+		FROM mart.rie_et_dong_emp_cnt
+	</select>
+	
+	<select id="selectEmdEmploymentRange" parameterType="map" resultType="resultCamelMap">
+		SELECT
+			*
+		FROM fn_natural_break_dashboard('3', 'emp_cnt', 'rie_et_dong_emp_cnt', '5',  #{condition})
+	</select>
+	
+	<!--  지도 -->
+	<select id="selectEmdEmploymentDefaultMap" parameterType="map" resultType="resultCamelMap">
+		SELECT json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	(
+				SELECT
+					array_to_json(array_agg(b.features))
+				FROM (
+					SELECT
+						json_build_object(
+							'type', 'Feature',
+							'geometry', a.geom
+						) AS features
+					FROM(
+						SELECT
+							ST_AsGeoJSON(st_geometryn(st_transform(geom, 4326), 1))::jsonb AS geom
+						FROM cmm_bcrn
+					) a
+				) b
+			)
+		)
+	</select>
+	
+	<select id="selectEmdEmploymentCnt" parameterType="map" resultType="resultCamelMap">
+		SELECT
+			json_build_object(
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(a.features))
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+									'dong_cd', dong_cd,
+									'dong_nm', dong_nm,
+									'emp_cnt', emp_cnt
+								),
+								'geometry', a.geom
+							) AS features
+						FROM (
+							SELECT
+								ST_AsGeoJSON(st_geometryn(st_transform(b.geom, 4326), 1))::jsonb as geom,
+								a.dong_cd,
+								a.dong_nm,
+								a.emp_cnt
+							FROM mart.rie_et_dong_emp_cnt a,
+								cmm_dong_bndr b
+							WHERE a.dong_cd = b.dong_cd
+								AND a.crtr_yr = #{year}
+						) a
+					) a
+				)
+			)
+	</select>
+	
+	<select id="selectEmployeeCnt" resultType="resultCamelMap">
+		SELECT
+			dong_cd,
+			dong_nm,
+			ent_cnt
+		FROM mart.rie_et_dong_ent_cnt
+		WHERE crtr_ym = (
+			SELECT
+				MAX(crtr_ym)
+			FROM mart.rie_et_dong_ent_cnt
+		)
+	</select>
+	
+	<select id="selectIndustryAvgPay" resultType="resultCamelMap">
+		SELECT
+			stac_se,
+			ROUND(atrb_01/1000) atrb_01,
+			stac_ymd||'년' AS date
+		FROM data.stac_et_data
+		WHERE stac_cd = 'ET_EMP_001'
+			AND stac_ymd = (
+				SELECT
+					MAX(stac_ymd)
+				FROM data.stac_et_data
+				WHERE stac_cd = 'ET_EMP_001'
+			)
+		ORDER BY atrb_01 DESC
+	</select>
+	
+	<select id="selectEntrantRetirees" resultType="resultCamelMap">
+		SELECT
+			TO_CHAR(TO_DATE(stac_ymd, 'YYYYMM'), 'YYYY. MM') stac_ymd,
+			COALESCE(atrb_01, 0) atrb_01,
+			COALESCE(atrb_02, 0) atrb_02
+		FROM data.stac_et_data
+		WHERE stac_cd = 'ET_EMP_002'
+			AND stac_ymd &gt; (
+				SELECT
+					TO_CHAR(TO_DATE(MAX(stac_ymd), 'YYYYMM')::timestamp + '-12 months', 'yyyymm')
+				FROM data.stac_et_data
+				WHERE stac_cd = 'ET_EMP_002'
+			)
+		ORDER BY stac_ymd
+	</select>
+	
+	<select id="selectYearAvgPay" resultType="resultCamelMap">
+		SELECT
+			stac_ymd,
+			ROUND(atrb_01/1000) atrb_01
+		FROM data.stac_et_data
+		WHERE stac_cd = 'ET_EMP_003'
+			AND stac_ymd::int > (
+				SELECT
+					MAX(stac_ymd)::int-5
+				FROM data.stac_et_data
+				WHERE stac_cd ='ET_EMP_003'
+			)
+		ORDER BY stac_ymd
+	</select>
+</mapper>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+ * 관리자 > 연계 데이터 관리
+ * @author 김부권
+ * @since 2021. 09. 23.
+ * @version 1.0
+ * @see
+ *
+ * <pre>
+ * << 개정이력(Modification Information) >>
+ *
+ *  수정일			수정자			수정내용
+ *  ==========    	==========		========================================
+ *  2021.09.23.   	김부권          최초 생성
+
+ -->
+<mapper namespace="LinkMngDAO">
+	<!-- 연계주기 목록 조회하기 -->
+	<select id="selectLinkList" resultType="resultCamelMap">
+		SELECT a.code as code,
+		       case when a.code='1 Hour' then '1시간'
+	          when a.code= '1 Day' then '1일'
+	          when a.code = '1 Month' then '1달'
+	          when a.code = '10 Minutes' then '10분'
+	          else a.code end as name
+		  FROM 
+			 ( 
+			  SELECT  DISTINCT(rtrim(cnt_cyc)) as code
+			    FROM data.LIK_LOG_INFO
+			 ) a
+	 order by a.code = '실시간', a.code = '10 Minutes',  a.code = '1 Hour', 
+          a.code = '1 Day', a.code = '1 Month';
+	</select>
+	<!-- 연계상태 조회하기 -->
+	<select id="selectLinkStatusList" resultType="resultCamelMap">
+		SELECT DISTINCT(evt_nm) as name ,evt_nm as code
+		  FROM data.LIK_LOG_INFO
+	</select>
+	
+	
+	<!-- 연계 GRID 목록 조회하기 -->
+	<select id="selectLinkData" parameterType="map" resultType="resultCamelMap">
+		SELECT
+			a.*,
+			(
+				SELECT
+					CASE
+						WHEN evt_cf = '종료' OR evt_cf = '성공' THEN 'O'
+						ELSE 'X'
+					END
+			 	FROM data.LIK_LOG_INFO
+			 	WHERE CNT_CF = a.title
+			 	ORDER BY evt_tm DESC
+			 	LIMIT 1
+			 ) evt_cf
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER (ORDER BY 1) as no,
+				RTRIM(a.CNT_CF) title,
+				RTRIM(a.cnt_cyc) code,
+				CASE
+					WHEN RTRIM(a.CNT_CF) = 'SNS 및 뉴스' then '외부' 
+					ELSE '내부'
+				END as cycle,
+				CASE
+					WHEN RTRIM(a.cnt_cyc) ='1 Hour' then '1시간'
+					WHEN RTRIM(a.cnt_cyc) = '1 Day' then '1일'
+					WHEN RTRIM(a.cnt_cyc) = '1 Month' then '1달'
+					WHEN RTRIM(a.cnt_cyc) = '10 Minutes' then '10분'
+					ELSE RTRIM(a.cnt_cyc)
+				END as name,
+				TO_CHAR(MAX(evt_tm), 'YYYYMMDD') evt_tm
+			FROM data.LIK_LOG_INFO a
+			<where>
+				<if test="code != '' and code != null">
+					AND RTRIM(a.cnt_cyc) = #{code}
+				</if>
+				<if test="name != '' and name != null">
+					AND RTRIM(a.CNT_CF) LIKE '%'||#{name}||'%'
+				</if>
+			</where>
+			GROUP BY title, code
+			ORDER BY title
+		) a
+	</select>
+	
+	<!-- 연계 최근날짜 가져오기 -->
+	<select id="selectLinkDataDate" parameterType="map" resultType="resultCamelMap">
+		SELECT max(to_char(EVT_TM, 'yyyymmdd')) as date
+		  FROM data.LIK_LOG_INFO
+		 WHERE 1=1
+		 <if test="name != '' and name != null"> 
+		   AND CNT_CF=#{name}
+		 </if>
+	</select>
+	
+	<!-- 연계 데이터 로그 가져오기 -->
+	<select id="selectLinkDataLog" parameterType="map" resultType="resultCamelMap">
+		SELECT  cnt_cf as title, evt_ct as status, to_char(evt_tm, 'yyyymmdd') as date, to_char(evt_tm, 'hh24:mm') as time
+		  FROM data.LIK_LOG_INFO
+		 WHERE 1=1
+		 <if test="name != '' and name != null"> 
+		   AND CNT_CF=#{name}
+		 </if>
+		 <if test="date != '' and date != null"> 
+		   AND to_char(EVT_TM, 'yyyymmdd') = #{date}
+		 </if>
+		 <if test="statusList != '' and statusList != null"> 
+		   AND evt_nm = #{statusList}
+		 </if>
+		   ORDER BY evt_tm DESC 
+		 limit 15;
+	</select>
+</mapper>

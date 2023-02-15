@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="PopulationMoveMapper">
+	<!-- 전입전출 검색기간   -->
+	<select id="selectPopMoveDate" resultType="resultCamelMap">
+		SELECT  to_char(to_date(max(stac_ymd), 'YYYYMM'),'yyyy-mm') as max, to_char(to_date(min(stac_ymd), 'YYYYMM'),'yyyy-mm') as min
+		  FROM data.stac_po_data
+		 WHERE 1=1
+		   AND (STAC_CD = 'PO_MOV_001' or stac_cd='PO_MOV_002' or stac_cd = 'PO_MOV_003')
+	</select>
+	
+	<!-- 전입전출 순이동 현황 -->
+	<select id="selectPopMoveStatus" parameterType="map" resultType="resultCamelMap">
+		SELECT case when ATRB_01 is null then 0 else ATRB_01 end ATRB_01, 
+		       case when ATRB_02 is null then 0 else ATRB_02*100 end as ATRB_02, 
+		       case when ATRB_03 is null then 0 else ATRB_03 end ATRB_03, 
+		       case when ATRB_04 is null then 0 else ATRB_04*100 end as ATRB_04, 
+		       case when ATRB_05 is null then 0 else ATRB_05 end ATRB_05, 
+		       case when ATRB_06 is null then 0 else ATRB_06*100 end ATRB_06
+		  FROM data.stac_po_data
+		 WHERE 1=1
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		   AND STAC_CD = 'PO_MOV_001'
+	</select>
+	
+	<!-- 전입 현황 -->
+	<select id="selectPopIncomeStatus" parameterType="map" resultType="resultCamelMap">
+		SELECT stac_dong_cd, stac_ymd, 
+		       case when ATRB_01 is null then 0 else ATRB_01::int end ATRB_01, STAC_SE
+		  FROM data.stac_po_data
+		 WHERE 1=1
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		   AND STAC_CD = 'PO_MOV_002'
+		   order by ATRB_01 desc
+		
+	</select>
+	
+	<!-- 전출 현황 -->
+	<select id="selectPopOutcomeStatus" parameterType="map" resultType="resultCamelMap">
+		SELECT stac_dong_cd, stac_ymd, 
+               case when ATRB_01 is null then 0 else ATRB_01 end ATRB_01, STAC_SE
+		  FROM data.stac_po_data
+		 WHERE 1=1
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		   AND STAC_CD = 'PO_MOV_003'
+		   order by ATRB_01 desc
+	</select>
+	
+	<!-- 10년 전입, 전출 현황 -->
+	<select id="selectPopMoveYearStatus" parameterType="map" resultType="resultCamelMap">
+		SELECT stac_ymd, 
+		       case when ATRB_01 is null then 0 else ATRB_01 end ATRB_01, 
+		       case when ATRB_02 is null then 0 else ATRB_02 end ATRB_02, 
+		       case when ATRB_03 is null then 0 else ATRB_03 end ATRB_03
+		  FROM data.stac_po_data
+		 WHERE 1=1
+		   AND STAC_CD = 'PO_MOV_004'
+		 ORDER BY stac_ymd desc 
+		Limit 10;
+	</select>
+	
+	<!--  전입, 전출  data -->
+	<!-- <select id="selectPopMoveMapData" parameterType="map" resultType="resultCamelMap">
+		SELECT trrn_pop_cnt, mvt_pop_cnt, sggu_cd, SGGU_NM
+			  FROM mart.pdt_po_admd_move
+			 WHERE 1=1
+			 <if test="startDate != null and startData != ''">
+			 </if>
+			   AND crtr_ym = '201701'
+			  ORDER BY trrn_pop_cnt desc
+			 <if test="startDate != null and startData != ''">
+			  ORDER BY mvt_pop_cnt desc
+			 </if>
+	</select> -->
+	
+	<!-- 전입, 전출 네추럴 브레이크 구간값  -->
+	<select id="selectPopMoveMapRange" parameterType="map" resultType="resultCamelMap">
+		select * from fn_natural_break_dashBoard('3', 
+		<choose>
+	        <when test="sort == 1">
+	       		'mvin_nope'
+			</when>
+	       	<when test="sort == 2">
+				'mvout_nope'								        
+	       	</when>
+	       </choose>
+		, 'pdt_po_dong_mvmn', '5', #{condition});
+	</select>
+	
+	
+	<!-- 전입, 전출 네추럴 브레이크 구간값  -->
+	<select id="selectPopMoveMapSggRange" parameterType="map" resultType="resultCamelMap">
+		select * from fn_natural_break_dashBoard('3', 
+		<choose>
+	        <when test="sort == 1">
+	       		'mvin_nope'
+			</when>
+	       	<when test="sort == 2">
+				'mvout_nope'								        
+	       	</when>
+	       </choose>
+		, 'pdt_po_sgg_mvmn', '5', #{condition});
+	</select>
+	
+	
+	<!--  전입, 전출 지도 -->
+	<select id="selectPopMoveMap" parameterType="map" resultType="resultCamelMap">
+		select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'properties', json_build_object(
+										'admd_cd', dong_cd, 
+										'admd_nm', dong_nm,
+										'trrn_pop_cnt', mvin_nope,
+										'mvt_pop_cnt',mvout_nope
+										), 
+										'geometry', a.geom
+										) as features
+								  from (SELECT ST_AsGeoJSON(st_geometryn(st_transform(a.geom, 4326), 1))::jsonb as geom,
+								  	a.mvin_nope, a.mvout_nope, a.dong_cd, cmm_dong_bndr.dong_nm
+									      FROM mart.pdt_po_dong_mvmn a, cmm_dong_bndr
+									      WHERE 1=1
+									      	AND a.dong_cd = cmm_dong_bndr.dong_cd
+									        <if test="startDate != null and startData != ''">
+									        AND crtr_ym = #{startDate}
+											</if>
+									    <!-- limit 1 -->
+								      ) a
+								) b
+						)
+			)
+	</select>
+	
+	<!--  전입, 전출 지도 -->
+	<select id="selectPopMoveSgguMap" parameterType="map" resultType="resultCamelMap">
+		select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'properties', json_build_object(
+										'sggu_cd', SGG_CD, 
+										'sggu_nm', SGG_NM,
+										'trrn_pop_cnt', mvin_nope,
+										'mvt_pop_cnt',mvout_nope
+										), 
+										'geometry', a.geom
+										) as features
+								  from (SELECT ST_AsGeoJSON((ST_Dump(st_transform(a.geom, 4326))).geom)::jsonb as geom,
+								  	a.mvin_nope, a.mvout_nope, a.adm_sgg_cd as SGG_CD, a.SGG_nm
+									      FROM mart.pdt_po_sgg_mvmn a
+									      WHERE 1=1
+									        <if test="startDate != null and startData != ''">
+									        AND crtr_ym = #{startDate}
+											</if>
+									    <!-- limit 1 -->
+								      ) a
+								) b
+						)
+			)
+	</select>
+	
+	<!--  지도 -->
+	<select id="selectPopMoveDefaultMap" parameterType="map" resultType="resultCamelMap">
+		select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'geometry', a.geom
+										) as features
+								  from (select ST_AsGeoJSON(st_geometryn(st_transform(geom, 4326), 1))::jsonb as geom from cmm_bcrn
+								      ) a
+								) b
+						)
+			)
+	</select>
+	
+		<!--  지도 -->
+	<select id="selectPopMoveUjbMap" parameterType="map" resultType="resultCamelMap">
+		select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'properties', json_build_object(
+										'sggu_nm', SGG_NM
+										), 
+										'geometry', a.geom
+										) as features
+								  from (select ST_AsGeoJSON(st_geometryn(st_transform(geom, 4326), 1))::jsonb as geom, SGG_NM from cmm_sgg_bndr  where SGG_NM='의정부시'
+								      ) a
+								) b
+						)
+			)
+	</select>
+</mapper>

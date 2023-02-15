@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="PopulationFlowMapper">
+	
+	<!-- 네추럴 브레이크 구간값  -->
+	<select id="selectPopEmdTimeRange" parameterType="map" resultType="resultCamelMap">
+		select * from fn_natural_break('3', 'flow_nope', 'pdt_po_dong_flow', '5');
+	</select>
+	
+	<!-- 유동인구 검색기간   -->
+	<select id="selectPopFlowDate" resultType="resultCamelMap">
+		SELECT  to_char(to_date(max(stac_ymd), 'YYYYMM'),'yyyy-mm') as max, to_char(to_date(min(stac_ymd), 'YYYYMM'),'yyyy-mm') as min
+		  FROM data.stac_po_data
+		 WHERE 1=1
+		   AND (stac_cd = 'PO_FLO_002')
+		   <!-- AND (STAC_CD = 'PO_FLO_001' or stac_cd='PO_FLO_002' and stac_cd = 'PO_FLO_003') -->
+	</select>
+	
+	
+	
+	<!-- 행정동별 시간대별 인구 -->
+	<select id="selectPopEmdTime" parameterType="map" resultType="resultCamelMap">
+		select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'properties', json_build_object(
+										'dong_cd', dong_cd, 
+										'admd_nm', dong_NM,
+										'flow_nope', flow_nope
+										), 
+										'geometry', a.geom
+										) as features
+								  from (SELECT ST_AsGeoJSON(st_geometryn(st_transform(a.geom, 4326), 1))::jsonb as geom,
+								  	 a.flow_nope, a.dong_cd, b.dong_NM
+									      FROM mart.pdt_po_dong_flow a, 
+									   (select distinct dong_cd, dong_nm from (select * from cmm_dong_bndr_2020 union select * from cmm_dong_bndr) b_1 group by dong_cd, dong_nm) b
+									      WHERE 1=1
+									      	AND a.dong_cd = b.dong_CD
+									        <if test="startDate != null and startData != ''">
+									        AND crtr_ym = #{startDate}
+		 									</if>
+								      ) a
+								) b
+						)
+			)	  
+	</select>
+	
+	<!-- 요일별 인구 -->
+	<select id="selectPopDayFlow" parameterType="map" resultType="resultCamelMap">
+		SELECT 
+		       case when ATRB_01 is null then 0 else ATRB_01 end as ATRB_01, 
+		       case when ATRB_02 is null then 0 else ATRB_02 end as ATRB_02, 
+		       case when ATRB_03 is null then 0 else ATRB_03 end as ATRB_03, 
+		       case when ATRB_04 is null then 0 else ATRB_04 end as ATRB_04, 
+		       case when ATRB_05 is null then 0 else ATRB_05 end as ATRB_05, 
+		       case when ATRB_06 is null then 0 else ATRB_06 end as ATRB_06, 
+		       case when ATRB_07 is null then 0 else ATRB_07 end as ATRB_07, 
+		       case when STAC_SE is null then '' else STAC_SE end as STAC_SE 
+		  FROM data.stac_po_data
+		 WHERE 1=1
+		   AND STAC_CD = 'PO_FLO_001'
+		 <if test="startDate != null and startData != ''">
+	       AND stac_ymd = #{startDate}
+		 </if>
+		 <choose>
+		 	<when test="admdCode != null and admdCode != ''">
+		 		AND stac_dong_cd = #{admdCode}
+		 	</when>
+		 	<otherwise>
+		 		AND stac_dong_cd = '4115000000'
+		 	</otherwise>
+		 </choose>
+		 ORDER BY STAC_SE asc
+	</select>
+	
+	<!-- 성 연령별 유동 인구 -->
+	<select id="selectPopGenderFlow" parameterType="map" resultType="resultCamelMap">
+		SELECT 
+			   case when ATRB_01 is null then 0 else ATRB_01 end as ATRB_01, 
+			   case when ATRB_02 is null then 0 else ATRB_02 end as ATRB_02, 
+     CASE WHEN stac_se = '000' THEN '0세 ~ 9세'   
+		  WHEN stac_se = '010' THEN '10세 ~ 19세' 
+		  WHEN stac_se = '020' THEN '20세 ~ 29세' 
+		  WHEN stac_se = '030' THEN '30세 ~ 39세' 
+		  WHEN stac_se = '040' THEN '40세 ~ 49세' 
+		  WHEN stac_se = '050' THEN '50세 ~ 59세' 
+		  WHEN stac_se = '060' THEN '60세 ~ 69세' 
+		  WHEN stac_se = '070' THEN '70세 ~ 79세' end as stac_se2
+		  FROM data.stac_po_data
+		 WHERE 1=1
+		   AND STAC_CD = 'PO_FLO_002'
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		 <choose>
+		 	<when test="admdCode != null and admdCode != ''">
+		 		AND stac_dong_cd = #{admdCode}
+		 	</when>
+		 	<otherwise>
+		 		AND stac_dong_cd = '4115000000'
+		 	</otherwise>
+		 </choose>
+		  ORDER BY stac_se asc;
+	</select>
+	
+	<!-- 행정동별 시간대별 인구 -->
+	<select id="selectPopRegService" parameterType="map" resultType="resultCamelMap">
+		SELECT substr(stac_dong_cd, 1, 8), 
+		       case when atrb_01 is null then 0 else atrb_01 end atrb_01, 
+		       case when atrb_02 is null then 0 else atrb_02 end atrb_02, 
+		       stac_se, 
+		       dong_nm as admd_nm
+		  FROM data.stac_po_data, cmm_ujb_dong_nm
+		 WHERE 1=1
+		   AND STAC_CD = 'PO_FLO_003'
+		 <if test="startDate != null and startData != ''">
+		   AND stac_ymd = #{startDate}
+		 </if>
+		 <choose>
+		 	<when test="admdCode != null and admdCode != ''">
+		 		AND stac_dong_cd = #{admdCode}
+		 	</when>
+		 	<otherwise>
+		 		AND stac_dong_cd = '4115000000'
+		 	</otherwise>
+		 </choose>
+		   AND dong_cd = stac_dong_cd
+		 ORDER BY atrb_01 desc;  
+	</select>
+	
+	
+</mapper>

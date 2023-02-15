@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="WelfareStatusMapper">
+	
+	<!-- 배경지도 조회 -->
+	<select id="selectDefaultMap" parameterType="map" resultType="resultCamelMap">
+		select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'geometry', a.geom
+										) as features
+								  from (select ST_AsGeoJSON(st_geometryn(st_transform(geom, 4326), 1))::jsonb as geom from cmm_bcrn
+								      ) a
+								) b
+						)
+			)
+	</select>
+	
+	<!-- 의정부 행정동 경계 조회   -->
+	<select id="selectAdmdArea" parameterType="map" resultType="resultCamelMap">
+		select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'properties', json_build_object(
+										'admd_cd', a.dong_cd, 
+										'admd_nm', a.dong_NM,
+										'kndgn', kndgn,
+										'nrsy', nrsy,
+										'publ', publ,
+										'priv', priv
+										), 
+										'geometry', a.geom
+										) as features
+								  from (SELECT ST_AsGeoJSON(st_geometryn(st_transform(geom, 4326), 1))::jsonb as geom
+								  	         , dong_cd, dong_nm
+									      FROM  cmm_dong_bndr
+									      WHERE 1=1
+								      ) a
+								    , (
+									    SELECT dong_nm, dong_cd
+										     , sum(CASE WHEN se='유치원' THEN 1 END) AS kndgn
+										     , sum(CASE WHEN se='어린이집' THEN 1 END) AS nrsy
+										     , sum(CASE WHEN fcty_tp='공립' THEN 1 END) AS publ
+										     , sum(CASE WHEN fcty_tp='사립' THEN 1 END) AS priv
+										FROM mart.pdt_wf_nrt_fac
+										GROUP BY dong_nm, dong_cd
+								    ) aa
+								    WHERE a.dong_cd = aa.dong_cd
+								) b
+						)
+			)	
+	</select>
+	
+	<!-- 기준연도   -->
+	<select id="selectWfStatusDate" parameterType="map" resultType="resultCamelMap">
+		SELECT
+			TO_CHAR(TO_DATE(MAX(stac_ymd), 'YYYYMM'), 'yyyy-mm') AS MAX,
+			TO_CHAR(TO_DATE(MIN(stac_ymd), 'YYYYMM'), 'yyyy-mm') AS MIN
+		FROM
+			"data".stac_wf_data
+		WHERE
+			1 = 1
+			AND (
+				   stac_cd = 'WF_WLF_001'
+				OR stac_cd = 'WF_WLF_002'
+				OR stac_cd = 'WF_WLF_003'
+				OR stac_cd = 'WF_WLF_004'
+				OR stac_cd = 'WF_WLF_005'
+			)
+	</select>
+	
+	<!-- 보육시설 현황 조회   -->
+	<select id="selectChildFacilStatus" parameterType="map" resultType="resultCamelMap">
+		 select json_build_object
+			(
+			'type', 'FeatureCollection', 
+			'features',	( select array_to_json(array_agg(b.features)) 
+							from 	
+								(
+								select json_build_object(
+										'type', 'Feature',
+										'properties', json_build_object(
+										'dong_cd', dong_cd, 
+										'dong_nm', dong_nm,
+										'fcty_nm', fcty_nm,
+										'fcty_tp', fcty_tp,
+										'se', se,
+										'prcp_cnt', prcp_cnt
+										), 
+										'geometry', a.geom
+										) as features
+								  from (SELECT ST_AsGeoJSON(st_geometryn(st_transform(geom, 4326), 1))::jsonb as geom
+								  	         , dong_cd, dong_nm, fcty_nm, fcty_tp, se, prcp_cnt
+									      FROM  mart.pdt_wf_nrt_fac
+									      WHERE 1=1
+								      ) a
+								) b
+						)
+			)
+	</select>
+	
+	<!-- 노인복지시설 현황 조회   -->
+	<select id="selectOldWfFacilStatus" parameterType="map" resultType="resultCamelMap">
+		SELECT *,  substring( crtr_ym,0,5)||'년' as date
+		 FROM mart.pdt_wf_sen_fac_grd
+	</select>
+	
+	<!-- 노인복지시설 종류별 비율 조회   -->
+	<select id="selectOldWfFacilRatio" parameterType="map" resultType="resultCamelMap">
+		SELECT stac_dong_cd AS adm_code
+		     , stac_ymd AS stat_date
+		     , stac_se AS cnt_type
+		     , case when atrb_01 is null then 0 else atrb_01 end AS val1
+		     , case when atrb_02 is null then 0 else atrb_02 end AS val2
+		     , case when atrb_03 is null then 0 else atrb_03 end AS val3
+		     , case when atrb_04 is null then 0 else atrb_04 end AS val1Cnt
+		     , case when atrb_05 is null then 0 else atrb_05 end AS val2Cnt
+		     , case when atrb_06 is null then 0 else atrb_06 end AS val3Cnt
+		     , substring( A.DATE,0,5)||'년' as date
+		FROM "data".stac_wf_data,
+			 (
+				SELECT max(stac_ymd) as date
+				FROM "data".stac_wf_data
+				WHERE stac_cd = 'WF_WLF_001'
+				)a
+		WHERE stac_cd = 'WF_WLF_001'
+		AND stac_ymd = a.date
+	</select>
+	
+	<!-- 유형별 유치원 정원 수 조회   -->
+	<select id="selectKndgnLimit" parameterType="map" resultType="resultCamelMap">
+		SELECT stac_dong_cd AS adm_code
+		     , stac_ymd AS stat_date
+		     , case when stac_se is null then '' else stac_se end AS facilType
+		     , case when atrb_01 is null then 0 else atrb_01 end AS val1
+		     , case when atrb_02 is null then 0 else atrb_02 end AS val2
+		     , substring( A.DATE,0,5)||'년' as date
+		FROM "data".stac_wf_data,
+				(
+					SELECT max(stac_ymd) as date
+					FROM "data".stac_wf_data
+					WHERE stac_cd = 'WF_WLF_002'
+				)a
+		WHERE stac_cd = 'WF_WLF_002'
+		AND stac_ymd = a.date
+		ORDER BY val1 DESC
+	</select>
+	
+	<!-- 유형별 어린이집 정원 수 조회   -->
+	<select id="selectNurseryLimit" parameterType="map" resultType="resultCamelMap">
+		SELECT stac_dong_cd AS adm_code
+		     , stac_ymd AS stat_date
+		     , case when stac_se is null then '' else stac_se end AS facilType
+		     , case when atrb_01 is null then 0 else atrb_01 end AS val1
+		     , substring( A.DATE,0,5)||'년' as date
+		FROM "data".stac_wf_data
+		,(
+			SELECT max(stac_ymd) as date
+			FROM "data".stac_wf_data
+			WHERE stac_cd = 'WF_WLF_003'
+			)a
+		WHERE stac_cd = 'WF_WLF_003'
+		AND stac_ymd = a.date
+		ORDER BY val1 DESC
+	</select>
+	
+	<!-- 장애 정도별 수급자 수 조회   -->
+	<select id="selectDisDegreeCnt" parameterType="map" resultType="resultCamelMap">
+		SELECT stac_dong_cd AS adm_code
+		     , stac_ymd AS stat_date
+		     , stac_se AS facilType
+		     , case when atrb_01 is null then 0 else atrb_01 end AS val1
+		     , a.date
+		FROM "data".stac_wf_data
+		,(
+			SELECT max(stac_ymd)as date
+			FROM "data".stac_wf_data
+			WHERE stac_cd = 'WF_WLF_004'
+			)a
+		WHERE stac_cd = 'WF_WLF_004'
+		AND stac_ymd = a.date
+	</select>
+	
+	<!-- 연령별 수급자 수 조회   -->
+	<select id="selectDisAgeCnt" parameterType="map" resultType="resultCamelMap">
+		SELECT stac_dong_cd AS adm_code
+		     , stac_ymd AS stat_date
+		     , stac_se AS facilType
+		     , case when atrb_01 is null then 0 else atrb_01 end AS val1
+		     , a.date
+		FROM "data".stac_wf_data
+		,(
+			SELECT max(stac_ymd) as date
+			FROM "data".stac_wf_data
+			WHERE stac_cd = 'WF_WLF_005'
+			)a
+		WHERE stac_cd = 'WF_WLF_005'
+		AND stac_ymd = a.date
+	</select>
+	
+</mapper>

@@ -1,0 +1,14 @@
+@charset "utf-8";
+/* CSS Document */
+
+.accident_map {float:left;width:60%;height:861px}
+.mapsub_all {float:left;width:40%;height:861px}
+
+.outbreak_list {float:left;width:100%;height:400px;overflow-y:auto}
+.outbreak_list ul li {float:left;width:100%;line-height:150%;background:url("../image/common/bullet_3_3.png") no-repeat 0 11px;padding:0 0 10px 10px}
+
+.grp_rescue {float:left;width:100%;}
+.graph_389 {float:left;width:100%;height:429px}
+
+.fire_area {float:left;width:100%;height:423px}
+.graph_391 {float:left;width:100%;height:391px}

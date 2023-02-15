@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+ * 관리자 > 사용자 조회 SQL
+ * @author 전동표
+ * @since 2020. 07. 01.
+ * @version 1.0
+ * @see
+ *
+ * <pre>
+ * << 개정이력(Modification Information) >>
+ *
+ *  수정일			수정자			수정내용
+ *  ==========    	==========		========================================
+ *  2020.07.01.   	전동표          최초 생성
+
+ -->
+<mapper namespace="UserSearchManage">
+
+	<!-- 사용자조회-->
+	<select id="selectSearchList" parameterType="map" resultType="resultCamelMap">
+	
+       select ROW_NUMBER () OVER (ORDER BY a.rank_levl, a.user_id asc) as no
+            , a.logon_id as user_id
+            , a.user_name
+            , a.dept_name || ' ' || a.section_name as dept_name
+            , a.rank_name as position_name
+            , a.grade_name
+            , a.pos_name as class_name
+         from organ_view as a
+        where 1=1
+          and a.logon_id != ''
+          <!-- AND rank_id != 0 -->
+          <if test="department != '' and department != null">                                      
+		  and a.dept_id =  #{department}::numeric
+		  </if>
+          <if test="position_id != '' and position_id != null">                                      
+		  and a.rank_id =  #{position_id}::numeric
+		  </if>
+          <if test="userName != '' and userName != null">                                      
+		  and a.user_name like '%'||#{userName}||'%'
+		  </if>
+       order by a.rank_levl, a.user_id asc;
+	</select>
+	
+	<select id="getDeptAllGetList" resultType="resultCamelMap">
+		<if test="defaultValue != '' and defaultValue != null">  
+ 		SELECT #{defaultValue} as code, #{defaultText} as name 
+ 		UNION ALL
+ 		</if>
+		select dept_id as code, dept_name as name
+		  from data.ivo_org_dept
+		  where 1=1
+		   and dept_id <![CDATA[<>]]>  38200000000 
+		order by dept_id asc
+	</select>
+	
+	<select id="getPositionList" resultType="resultCamelMap">
+		<if test="defaultValue != '' and defaultValue != null">  
+ 		SELECT #{defaultValue} as code, #{defaultText} as name 
+ 		UNION ALL
+ 		</if>
+ 		SELECT id::text as code, text as name	
+	  	  FROM (
+		 		SELECT distinct rank_id as id, rank_name as text
+		          FROM ORGAN_VIEW
+		         WHERE 1=1
+		           AND rank_id is not null
+		           AND rank_id != 0
+		           AND COALESCE(rank_id::text, '') <![CDATA[<>]]> ''
+				order by rank_id asc
+				) a
+	</select>
+	
+</mapper>

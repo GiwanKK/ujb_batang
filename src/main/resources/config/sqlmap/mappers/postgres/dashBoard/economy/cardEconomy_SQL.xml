@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="CardEconomyMapper">
+	
+	<resultMap id="ageCategoryMap" type="map">
+		<result property="stac_ymd" column="stac_ymd" />
+		<result property="category" column="category" />
+		<result property="value" column="value" />
+		<collection property="breakdown" column="{stac_ymd=stac_ymd, category=category}" javaType="java.util.ArrayList" ofType="map" select="selectCardEconomyAgeCategoryDetail"/>
+	</resultMap>
+	
+	<select id="selectCardEconomyMaxDate" resultType="resultCamelMap">
+		SELECT
+			TO_CHAR(TO_DATE(MAX(stac_ymd),'yyyymm'), 'yyyy-mm') maxDate,
+			TO_CHAR(TO_DATE(MIN(stac_ymd),'yyyymm'), 'yyyy-mm') minDate
+		FROM data.stac_bd_data
+		WHERE stac_cd = 'BD_SAL_001'
+	</select>
+	
+	<select id="selectCardEconomyAgeCategory" parameterType="map" resultMap="ageCategoryMap">
+		SELECT
+			stac_ymd,
+			stac_tp category,
+			atrb_01 "value"
+		FROM (
+			SELECT
+				stac_ymd,
+				stac_tp,
+				SUM(ROUND(atrb_01/100000000,2)) atrb_01
+			FROM data.stac_bd_data
+			WHERE stac_cd = 'BD_SAL_001'
+				AND stac_ymd = #{dateYm}
+			GROUP BY stac_ymd, stac_tp
+			ORDER BY atrb_01 DESC
+		) a
+	</select>
+	
+	<select id="selectCardEconomyAgeCategoryDetail" parameterType="map" resultType="resultCamelMap">
+		SELECT
+			CASE
+				WHEN stac_se = '010_f' THEN '10대 여성'
+				WHEN stac_se = '010_m' THEN '10대 남성'
+				WHEN stac_se = '020_f' THEN '20대 여성'
+				WHEN stac_se = '020_m' THEN '20대 남성'
+				WHEN stac_se = '030_f' THEN '30대 여성'
+				WHEN stac_se = '030_m' THEN '30대 남성'
+				WHEN stac_se = '040_f' THEN '40대 여성'
+				WHEN stac_se = '040_m' THEN '40대 남성'
+				WHEN stac_se = '050_f' THEN '50대 여성'
+				WHEN stac_se = '050_m' THEN '50대 남성'
+				WHEN stac_se = '060_f' THEN '60대 여성'
+				WHEN stac_se = '060_m' THEN '60대 남성'
+				WHEN stac_se = '070_f' THEN '70대 여성'
+				WHEN stac_se = '070_m' THEN '70대 남성'
+			END category,
+			SUM(ROUND(atrb_01/100000000,2)) "value"
+		FROM data.stac_bd_data
+		WHERE stac_cd = 'BD_SAL_001'
+			AND stac_ymd = #{stac_ymd}
+			and stac_tp = #{category}
+		GROUP BY stac_se
+		ORDER BY stac_se
+	</select>
+	
+	<select id="selectCardEconomyEmd" parameterType="map" resultType="resultCamelMap">
+		SELECT
+			a.stac_dong_cd,
+			b.dong_nm as admd_nm,
+			ROUND(a.atrb_01/100000000,2) atrb_01
+		FROM data.stac_bd_data a,
+			cmm_dong_bndr b
+		WHERE a.stac_cd = 'BD_SAL_002'
+			AND a.stac_ymd = #{dateYm}
+			AND a.stac_dong_cd = b.dong_cd
+		ORDER BY a.atrb_01 DESC
+	</select>
+
+	<select id="selectCardEconomyWeek" parameterType="map" resultType="resultCamelMap">
+		SELECT
+			stac_se,
+			ROUND(atrb_01/100000000,2) atrb_01,
+			ROUND(atrb_02/100000000,2) atrb_02,
+			ROUND(atrb_03/100000000,2) atrb_03,
+			ROUND(atrb_04/100000000,2) atrb_04,
+			ROUND(atrb_05/100000000,2) atrb_05,
+			ROUND(atrb_06/100000000,2) atrb_06,
+			ROUND(atrb_07/100000000,2) atrb_07
+		FROM data.stac_bd_data
+		WHERE stac_cd = 'BD_SAL_003'
+			AND stac_ymd = #{dateYm}
+		ORDER BY stac_se
+	</select>
+
+	<select id="selectCardEconomyMonth" parameterType="map" resultType="resultCamelMap">
+		SELECT
+			LEFT(stac_ymd,4) "year",
+			RIGHT(stac_ymd,2) "month",
+			to_char(to_date(stac_ymd,'yyyymm'), 'yyyy-mm') stac_ymd,
+			ROUND(atrb_01/100000000,2) atrb_01
+		FROM data.stac_bd_data
+		WHERE stac_cd = 'BD_SAL_004'
+			AND stac_ymd &lt;= #{dateYm}
+			AND stac_ymd &gt;= TO_CHAR(TO_DATE(#{dateYm}, 'yyyymm') - '11 month'::interval, 'yyyymm')
+		ORDER BY stac_ymd
+	</select>
+	
+</mapper>

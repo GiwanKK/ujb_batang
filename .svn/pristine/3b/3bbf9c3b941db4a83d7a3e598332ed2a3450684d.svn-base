@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Wed May 11 15:49:38 KST 2016-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="MainMapper">
+	
+	<select id="getMainCategoryList" resultType="resultCamelMap">
+		SELECT
+			tp, en_tp
+		FROM mart.pdt_main_pge
+		GROUP BY tp, en_tp
+		ORDER BY tp, en_tp
+	</select>
+	
+	<select id="selectAdmdArea" resultType="resultCamelMap">
+		select
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					select
+						array_to_json(array_agg(b.features)) 
+					from (
+						select
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+									'admd_cd', a.dong_cd, 
+									'admd_nm', a.dong_NM
+								), 
+								'geometry', a.geom
+							) as features
+						from (
+							select
+								ST_AsGeoJSON(st_geometryn(st_transform(geom, 4326), 1))::jsonb as geom,
+								dong_cd,
+								dong_nm
+							FROM  cmm_dong_bndr
+						) a
+					) b
+				)
+			)
+	</select>
+	
+	<select id="selectMainTpList" parameterType="String" resultType="resultCamelMap">
+		SELECT
+			case
+				when tp = 'CCTV' then 1 
+				when tp = '가로수' then 2 
+				when tp = '공원수목' then 3
+				when tp = '무료와이파이' then 4
+				when tp = '소방용수시설' then 5
+				when tp = '신호등' then 6
+				when tp = '안전비상벨' then 7
+				when tp = '안전표지' then 8
+				when tp = '어린이 보호구역' then 9
+				when tp = '어린이집' then 10
+				when tp = '주차장' then 11
+				when tp = '횡단보도' then 12
+				when tp = '안내표지' then 13
+			end typeNo,
+			tp, 
+			en_tp,
+			dong_cd,
+			dong_nm,
+			cnt,
+			round(100*(cnt/maxCnt), 2) pert
+		FROM (
+			SELECT
+				tp,
+			    en_tp,
+				dong_cd,
+				dong_nm,
+				cnt::int,
+				(select max(cnt) from mart.pdt_main_pge WHERE tp = #{tp}) maxCnt
+			FROM mart.pdt_main_pge
+			WHERE tp = #{tp}
+		) a
+		
+		<!-- SELECT
+			json_build_object (
+				'type', 'FeatureCollection', 
+				'features',	(
+					SELECT
+						array_to_json(array_agg(b.features)) 
+					FROM (
+						SELECT
+							json_build_object(
+								'type', 'Feature',
+								'properties', json_build_object(
+									'tp', a.tp,
+									'typeNo', a.typeNo,
+									'cnt', a.cnt,
+									'dong_cd', a.dong_cd,
+									'dong_nm', a.dong_nm,
+									'pert', a.pert
+								), 
+								'geometry', a.geom
+							) as features
+						FROM (
+							SELECT
+								geom,
+								case
+									when tp = 'CCTV' then 1 
+									when tp = '가로수' then 2 
+									when tp = '공원수목' then 3
+									when tp = '무료와이파이' then 4
+									when tp = '소방용수시설' then 5
+									when tp = '신호등' then 6
+									when tp = '안전비상벨' then 7
+									when tp = '안전표지' then 8
+									when tp = '어린이 보호구역' then 9
+									when tp = '어린이집' then 10
+									when tp = '주차장' then 11
+									when tp = '횡단보도' then 12
+								end typeNo,
+								tp,
+								dong_cd,
+								dong_nm,
+								cnt,
+								round(100*(cnt/maxCnt), 2) pert
+							FROM (
+								SELECT
+									ST_AsGeoJSON(st_geometryn(st_transform(geom, 4326), 1))::jsonb as geom,
+									tp,
+									dong_cd,
+									dong_nm,
+									cnt::int,
+									(select max(cnt) from mart.pdt_main_pge WHERE tp = #{tp}) maxCnt
+								FROM mart.pdt_main_pge
+								WHERE tp = #{tp}
+							) a
+						) a
+					) b
+				)
+			) -->
+	</select>
+	
+	<select id="getCovidInfo" resultType="resultCamelMap">
+		SELECT
+			case when cnfd_pop is null then 0 else cnfd_pop end cnfd_pop,
+			case when undr_thrp_pop is null then 0 else undr_thrp_pop end undr_thrp_pop,
+			case when cmpl_recv_pop is null then 0 else cmpl_recv_pop end cmpl_recv_pop,
+			case when dead_pop is null then 0 else dead_pop end dead_pop,
+			to_char(data_stdr_de, 'yyyy년 mm월 dd일 HH24시 MI분') data_stdr_de
+		FROM data.ifd_day_sin_rpt
+		WHERE 1=1
+		  AND data_stdr_de is not null
+		ORDER BY data_stdr_de DESC
+		LIMIT 1
+	</select>
+	
+	<select id="getPopulationInfo" resultType="resultCamelMap">
+		SELECT
+			to_char(to_date(stac_ymd, 'YYYYMMDD'), 'YYYY년 MM월 DD일 기준') stac_ymd,
+			ROUND(atrb_01/1000, 0) atrb_01,
+			atrb_02,
+			atrb_03,
+			ROUND(atrb_04/1000, 0) atrb_04,
+			atrb_05,
+			atrb_06,
+			ROUND(atrb_07/1000, 0) atrb_07,
+			atrb_08,
+			atrb_09,
+			atrb_10,
+			atrb_11,
+			atrb_12,
+			atrb_13,
+			atrb_14,
+			atrb_15
+		FROM data.stac_po_data_dt
+		WHERE stac_cd = 'PO_STT_DT_001'
+			AND stac_dong_cd = '4115000000'
+		ORDER BY stac_ymd DESC
+		LIMIT 1
+	</select>
+	
+	<select id="getPopulationFlowInfo" resultType="resultCamelMap">
+		SELECT
+			CASE WHEN atrb_10 IS NULL THEN 0 ELSE atrb_10 end  as atrb01,
+			CASE WHEN atrb_13 IS NULL THEN 0 ELSE atrb_13 end  as atrb05,
+			CASE WHEN (atrb_10 - atrb_13) IS NULL THEN 0 ELSE (atrb_10 - atrb_13) end as atrb03
+		FROM data.stac_po_data_dt
+		WHERE stac_cd = 'PO_STT_DT_001'
+			AND stac_dong_cd = '4115000000'
+		ORDER BY stac_ymd DESC
+		LIMIT 1
+	</select>
+	
+	<select id="getBusinessList" resultType="resultCamelMap">
+		SELECT
+			STAC_CD,
+			CASE WHEN (ATRB_01 = 0 or ATRB_01 IS NULL ) THEN 0 ELSE ATRB_02/ATRB_01*100 END percent, 
+			CASE WHEN ATRB_01 IS NULL THEN 0 ELSE ATRB_01 END ATRB_01, 
+			CASE WHEN ATRB_02 IS NULL THEN 0 ELSE ATRB_02 END ATRB_02, 
+			STAC_SE, STAC_TP
+		FROM data.stac_sp_data
+		WHERE STAC_CD IN ('SP_STT_001', 'SP_STT_002', 'SP_STT_003', 'SP_STT_004', 'SP_STT_005')
+		ORDER BY percent desc, stac_cd
+		LIMIT 6
+	</select>
+	
+	<select id="getComplaintList" resultType="resultCamelMap">
+		SELECT
+			stac_se,
+			atrb_01 
+		FROM data.stac_cc_data
+		WHERE stac_cd = 'CC_CVLCPT_001'
+			AND stac_ymd = (
+				SELECT
+					max(stac_ymd)
+				FROM data.stac_cc_data
+				WHERE stac_cd = 'CC_CVLCPT_001'
+			)
+		ORDER BY atrb_01 DESC
+	</select>
+	
+	<select id="getOpinionList" resultType="resultCamelMap">
+		SELECT
+			stac_se,
+			atrb_01 
+		FROM data.stac_cc_data
+		WHERE stac_cd = 'CC_SNS_001'
+			AND stac_ymd = (
+				SELECT
+					max(stac_ymd)
+				FROM data.stac_cc_data
+				WHERE stac_cd = 'CC_SNS_001'
+			)
+		ORDER BY atrb_01 DESC
+	</select>
+	
+	<select id="getComplaintReceived" resultType="resultCamelMap">
+		SELECT
+			(
+				SELECT
+					case when to_char(now(), 'HH24') >= '18' then 0
+					else wait_cnt end ATRB_01
+				FROM data.ivt_ticket_reservation_list_tb
+				WHERE code = '15'
+					AND group_nm = '여권신청'
+				ORDER BY ticket_seq DESC
+				LIMIT 1
+			), (
+				SELECT
+					case when to_char(now(), 'HH24') >= '18' then 0
+					else wait_cnt end ATRB_02
+				FROM data.ivt_ticket_reservation_list_tb
+				WHERE code = '15'
+					AND group_nm = '여권찾는곳'
+				ORDER BY ticket_seq DESC
+				LIMIT 1
+			),
+			(
+				SELECT
+					case when to_char(now(), 'HH24') >= '18' then 0
+					else wait_cnt end ATRB_03 
+				FROM data.ivt_ticket_reservation_list_tb
+				WHERE code = '16'
+				  AND group_nm not like '가족관계등록신고'
+				ORDER BY ticket_seq DESC
+				LIMIT 1
+			), (
+				SELECT
+					case when to_char(now(), 'HH24') >= '18' then 0
+					else wait_cnt end ATRB_04
+				FROM data.ivt_ticket_reservation_list_tb
+				WHERE code = '16'
+				  AND group_nm = '가족관계등록신고'
+				ORDER BY ticket_seq DESC
+				LIMIT 1
+			)
+	</select>
+	
+	<select id="getNewsList" resultType="resultCamelMap">
+		SELECT
+			distinct case when colc_path = 'naver_news' then '네이버' 
+			   when colc_path = 'ujb_news' then '의정부 뉴스' end as colc_path,
+			colc_de,
+			news_sj,
+			news_url
+		FROM data.esn_news_data
+		where 1=1
+		and colc_path = 'naver_news'
+		and colc_de = to_char(current_timestamp + '-1 days','yyyy.mm.dd')
+	</select>
+	
+	<select id="getMaxNewsList" resultType="resultCamelMap">
+		SELECT
+			distinct case when colc_path = 'naver_news' then '네이버' 
+			   when colc_path = 'ujb_news' then '의정부 뉴스' end as colc_path,
+			colc_de,
+			news_sj,
+			news_url
+		FROM data.esn_news_data b,
+			(SELECT 
+				TO_CHAR(TO_DATE(MAX(colc_de),'yyyy.mm.dd'), 'yyyy.mm.dd') maxDate
+			 from data.esn_news_data
+			 where 1=1 and colc_path = 'naver_news') as a
+		where 1=1
+		and colc_de = a.maxDate
+	</select>
+	
+	<select id="getWeatherInfo" resultType="resultCamelMap">
+		SELECT
+			TO_CHAR(TO_DATE(basedate, 'YYYYMMDD'), 'YYYY년 MM월 DD일') basedate,
+			LEFT(basetime, 2)||':'||RIGHT(basetime, 2) basetime,
+			MAX(CASE WHEN category = 'T1H' THEN obsrvalue END) temperature,
+			MAX(CASE WHEN category = 'RN1' THEN obsrValue END) rain
+		FROM data.eam_getultrasrtncst
+		WHERE baseDate = (
+			SELECT
+				MAX(baseDate)
+			FROM data.eam_getultrasrtncst
+		)
+			AND  nx = '61'
+			AND ny = '130'
+			AND (
+				category = 'T1H'
+				OR category = 'RN1'
+			)
+		GROUP BY basedate, basetime
+		ORDER BY basedate desc, basetime desc
+		LIMIT 1
+	</select>
+	
+	<select id="getAirInfo" resultType="resultCamelMap">
+		SELECT
+			datatime,
+			pm10grade1h,
+			pm25grade1h
+		FROM data.eaa_arpltninforinqiresvc
+		WHERE station_name = '의정부동'
+		  AND pm10grade1h is not null
+		  AND pm25grade1h is not null
+		ORDER BY datatime DESC
+		LIMIT 1
+	</select>
+	
+	<select id="selectCompWordcloud" resultType="resultCamelMap">
+		SELECT STAC_SE as keyword,
+		       ATRB_01 as cnt,
+		       substr(stac_ymd, 1, 4) || '년 ' || substr(stac_ymd, 5, 6) || '월' as stac_ymd
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND stac_ymd = (SELECT max(stac_ymd) stac_ymd FROM data.stac_cc_data WHERE STAC_CD = 'CC_SNS_003' order by stac_ymd desc )
+		   AND STAC_CD = 'CC_SNS_003'
+		 ORDER BY ATRB_01 desc
+		 limit 50;
+	</select>
+	
+	<select id="selectCompStatus" resultType="resultCamelMap">
+		SELECT case when STAC_SE is null then '' else STAC_SE end as keyword,
+		       case when ATRB_01 is null then 0 else ATRB_01 end as total_cnt,
+		       case when (ATRB_02 is null  or ATRB_03 is null ) then 0 else round((ATRB_02/(ATRB_02+ATRB_03))*100,1) end as positive_cnt,
+		       case when (ATRB_02 is null  or ATRB_03 is null ) then 0 else round((ATRB_03/(ATRB_02+ATRB_03))*100,1) end as negative_cnt, 
+			   substr(stac_ymd, 1, 4) || '년 ' || substr(stac_ymd, 5, 6) || '월' as stac_ymd
+		  FROM data.stac_cc_data
+		 WHERE 1=1
+		   AND STAC_CD = 'CC_CVLCPT_001'
+		   AND stac_ymd = (SELECT MAX(stac_ymd) FROM data.stac_cc_data WHERE STAC_CD = 'CC_CVLCPT_001')
+		   ORDER BY total_cnt desc
+		LIMIT 3;
+	</select>
+	<select id="selectDongAttribute" resultType="resultCamelMap">
+		SELECT
+			tp,
+			dong_cd,
+			dong_nm,
+			cnt::int
+		FROM mart.pdt_main_pge
+		order by dong_cd asc, tp asc
+	</select>
+</mapper>

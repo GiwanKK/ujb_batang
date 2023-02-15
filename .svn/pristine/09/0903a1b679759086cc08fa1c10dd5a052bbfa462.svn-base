@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+ * 관리자 > 데이터 현황 관리
+ * @author 김부권
+ * @since 2021. 09. 23.
+ * @version 1.0
+ * @see
+ *
+ * <pre>
+ * << 개정이력(Modification Information) >>
+ *
+ *  수정일			수정자			수정내용
+ *  ==========    	==========		========================================
+ *  2021.09.23.   	김부권          최초 생성
+
+ -->
+<mapper namespace="DataStatusMngDAO">
+	<!-- 스키마별 데이터 조회하기 -->
+	<select id="selectScmaList" resultType="resultCamelMap">
+	   SELECT DISTINCT(SCMA_NM) as name , SCMA_NM as code
+   		 FROM mng_fld_data_info;
+	</select>
+	
+	<!-- 스키마별 데이터 갯수 조회하기 -->
+	<select id="selectScmaStatusCnt" resultType="resultCamelMap">
+	  SELECT count(SCMA_NM) as cnt, SCMA_NM 
+	    FROM mng_fld_data_info
+	   group by SCMA_NM
+	  order by SCMA_NM='data',SCMA_NM='work', SCMA_NM='public' ;
+	</select>
+	
+	
+	<!-- 스키마별 데이터 리스트 조회하기 -->
+	<select id="selectScmaStatus" parameterType="map" resultType="resultCamelMap">
+		with a as (
+		   SELECT TBL_NM as table_name, TBL_DECI as table_desc 
+		     FROM mng_fld_data_info
+	    	WHERE 1=1
+	    	<if test="tableName != '' and tableName != null">  
+	    	  and TBL_NM like '%'||#{tableName}||'%'
+		    </if>
+		    <if test="name != '' and name != null">  
+		      AND SCMA_NM=#{name}
+		    </if>
+		    order by TBL_NM asc
+		   )
+	   select * 
+		 from a , (select count(1) as cnt from a) as b
+	    LIMIT #{nowPageCnt}::numeric
+		 OFFSET #{nextNo}::numeric
+	</select>
+	
+	
+</mapper>
